@@ -1,4 +1,5 @@
-![image](https://github.com/user-attachments/assets/8e8a1e4e-6acf-4d37-9859-b0ec8c5bd2d0)
+<img width="2544" height="1868" alt="image" src="https://github.com/user-attachments/assets/7d52560f-b7fb-4543-a2ce-194d55aa5e70" />
+
 
 # LAN Clipboard - A Shared Tool for Your Local Network
 
