@@ -1,0 +1,24 @@
+# 按照最新的语言语法，完善这个githubaction编译脚本
+name: create a release 
+
+on:
+  workflow_dispatch:
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v$(date +'%Y%m%d%H%M%S')
+        name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false
+        files: |
+          *.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  

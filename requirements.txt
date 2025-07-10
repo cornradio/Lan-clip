@@ -1,0 +1,4 @@
+flask
+pyinstaller 
+pillow
+pystray

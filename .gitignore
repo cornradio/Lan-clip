@@ -1,0 +1,8 @@
+build/
+dist/
+*.spec
+cards/*
+images/*
+uploads/*
+__pycache__/
+*.zip

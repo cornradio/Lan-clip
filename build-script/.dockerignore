@@ -1,0 +1,8 @@
+dist/
+build/
+.github/
+__pycache__/
+*.sh
+*.pyc
+.git/
+.pytest_cache/ 

@@ -1,0 +1,82 @@
+name: Python package
+
+on: [push]
+
+jobs:
+  build-ubuntu-executable:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+    -   uses: actions/checkout@v4
+    -   name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+            python-version: ${{ matrix.python-version }}
+    # You can test your matrix by printing the current Python version
+    -   name: install pip requirements
+        run: |
+            pip install -r requirements.txt
+    -   name: build by cmd
+        run: |
+            pyinstaller --name=LAN_clipboard_app --add-data "templates:templates" --add-data "static:static" app.py -y
+    -   name: Copy artifacts
+        uses: actions/upload-artifact@v4
+        with:
+            name: lanclip-ubuntu-x64
+            path: dist/
+
+
+  build-win-executable:
+        runs-on: windows-2022
+        strategy:
+            matrix:
+              python-version: ["3.10"]
+        steps:
+        -   uses: actions/checkout@v4
+        -   name: Set up Python ${{ matrix.python-version }}
+            uses: actions/setup-python@v5
+            with:
+                python-version: ${{ matrix.python-version }}
+        # You can test your matrix by printing the current Python version
+        -   name: install pip requirements
+            run: |
+                pip install -r requirements.txt
+        -   name: build by cmd
+            run: |
+                pyinstaller --name=LAN_clipboard_app --add-data "templates;templates" --add-data "static;static"  app.py -y
+                pyinstaller --name=start --onefile --noconsole apploader.py -y
+        -   name: Move start.exe to LAN_clipboard_app folder
+            run: |
+              Move-Item -Path "dist/start.exe" -Destination "dist/LAN_clipboard_app/" -Force
+        -   name: Copy artifacts
+            uses: actions/upload-artifact@v4
+            with:
+                name: lanclip-windows-x64
+                path: dist/
+                
+  build-macos-executable:
+        runs-on: macos-15
+        strategy:
+            matrix:
+                python-version: ["3.10"]
+        steps:
+        -   uses: actions/checkout@v4
+        -   name: Set up Python ${{ matrix.python-version }}
+            uses: actions/setup-python@v5
+            with:
+                python-version: ${{ matrix.python-version }}
+        # You can test your matrix by printing the current Python version
+        -   name: install pip requirements
+            run: |
+                pip install -r requirements.txt
+        -   name: build by cmd
+            run: |
+                pyinstaller --name=LAN_clipboard_app --add-data "templates:templates" --add-data "static:static" app.py -y
+        -   name: Copy artifacts
+            uses: actions/upload-artifact@v4
+            with:
+                name: lanclip-macos-m1
+                path: dist/
+                    
