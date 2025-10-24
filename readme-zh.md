@@ -11,6 +11,7 @@
 - 内网高速传输
 - Windows 托盘模式
 - 多设备同步刷新
+- 全部删除密码：1230
 
 # 安装与启动
 1. Windows 桌面版
@@ -33,3 +34,4 @@ docker run -d -p 5000:5000 registry.cn-hangzhou.aliyuncs.com/aaas-images/lan-cli
 ```
 flask run --host=0.0.0.0 --port 5002
 ```
+
