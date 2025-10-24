@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html data-theme="dark">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
+<!-- 添加苹果快捷方式图标 -->
     <link rel="icon" href="{{ url_for('static', filename='lizard.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='liz2.png') }}" />
     <title>LAN Clipboard</title>
+    <!-- APP模式下，顶部空白处的颜色,可选为 default black black-translucent , default 使用 body 的背景色 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!--  App 名称，在用户选择添加到主页的时候这个名字会自动蹦出来 -->
+    <meta name="apple-mobile-web-app-title" content="LanClip">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -40,12 +46,12 @@
             拖放文件到这里上传
         </div>
     </div>
-
+<textarea id="input-text" name="text" placeholder="输入文本, + 发送"></textarea>
 
     <!-- 输入区域 -->
     <div class="input-form">
         <div class="input-container">
-            <textarea id="input-text" name="text" placeholder="输入文本, Ctrl+Enter或者点击的加号发送"></textarea>
+            
             <div class="button-group">
                 <button onclick="addCard()" id="add-btn" class="icon-button" title="添加">
                     <i class="fas fa-plus"></i>
@@ -59,9 +65,9 @@
                 <button onclick="window.location.href='/'" class="icon-button" title="刷新">
                     <i class="fas fa-refresh"></i>
                 </button>
-                <button onclick="clearHistory()" class="icon-button" title="清空">
+                <!-- <button onclick="clearHistory()" class="icon-button" title="清空">
                     <i class="fas fa-trash"></i>
-                </button>
+                </button> -->
 
                 
                 <button onclick="document.getElementById('file-input').click()" class="icon-button" title="上传图片">
@@ -156,6 +162,7 @@
                 <button class="close-button" onclick="closeSettings()">
                     <i class="fas fa-times"></i>
                 </button>
+                
             </div>
             <div class="modal-body">
                 <div class="settings-section">
@@ -167,6 +174,15 @@
                         </label>
                         <span class="setting-label">简洁模式（隐藏背景图片）</span>
                     </div>
+
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" id="simple-mode-toggle" onchange="clearHistory()">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="setting-label">清空历史记录</span>
+                    </div>
+                </button>
                 </div>
                 
                 <div class="settings-section">
@@ -194,7 +210,7 @@
                 <div class="settings-section">
                     <h4>关于</h4>
                     <div class="about-links">
-                        <a href="https://github.com/cornradio/LANwebclipboard-win-flask/" target="_blank" class="about-link">
+                        <a href="https://github.com/cornradio/LAN-clip" target="_blank" class="about-link">
                             <i class="fab fa-github"></i>
                             <span>GitHub 仓库</span>
                         </a>

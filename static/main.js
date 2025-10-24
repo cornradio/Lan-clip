@@ -17,7 +17,13 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 
 // 清空历史记录
 function clearHistory() {
-    if (confirm('确定要清空所有内容吗?')) {
+    // 输入密码
+    x = prompt('请输入密码以确认清空历史记录:');
+    if (x !== '1230') {
+        alert('密码错误，操作已取消。');
+        return;
+    }
+    else  {
         fetch('/clear', { method: 'POST' })
         document.querySelector('.card').innerHTML = '';
     }
@@ -567,9 +573,9 @@ ${content}
 const imageUrls = [
     // 'static/bg.jpg',
     // 'static/2.jpg',
-    // 'static/3.jpg',
-    // 'static/4.jpg',
-    // 'static/5.jpg'
+    'static/39.jpg',
+    'static/16.jpg',
+    'static/5.jpg'
     // 添加更多图片链接
 ];
 
@@ -611,6 +617,7 @@ async function copyToClipboard(button) {
         // 复制文本内容
         const cardContent = contentElement.innerText.trim();
         copyTextToClipboard(cardContent);
+        alert('文本已复制到剪贴板');
     }
 
     // 闪烁按钮绿色
