@@ -29,11 +29,12 @@ git clean -fdX
 ```
 docker rmi kasusa/lan-clipboard-app:latest
 docker build -t kasusa/lan-clipboard-app:latest .
-docker tag kasusa/lan-clipboard-app:latest kasusa/lan-clipboard-app:20251025
+docker tag kasusa/lan-clipboard-app:latest kasusa/lan-clipboard-app:20251028
 docker run -d -p 5000:5000 kasusa/lan-clipboard-app:latest
 docker login
+# 看到docker desktop 上面有头像算成功。
 docker push kasusa/lan-clipboard-app:latest
-docker push kasusa/lan-clipboard-app:20251025
+docker push kasusa/lan-clipboard-app:20251028
 ```
 
 
