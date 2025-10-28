@@ -254,11 +254,11 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')
         parser.add_argument('--port', type=int, default=5000, help='Port number to run the app on.')
         args = parser.parse_args()
-
-
     port = args.port
-
-    app.run(host='0.0.0.0', port=port, debug=False)
+    # app.run(host='0.0.0.0', port=port, debug=False)
+    from waitress import serve
+    print(f"Server running on http://localhost:5000/")
+    serve(app, host="0.0.0.0", port=5000)
 
 # debug
 # flask run --debug --host=0.0.0.0 --port 5000
