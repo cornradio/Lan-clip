@@ -194,8 +194,13 @@ def upload_image():
         images_dir = os.path.join(get_app_path(), 'images')
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
-        image.save(os.path.join(images_dir, image.filename))
-        return f'/images/{image.filename}'
+        # 为文件名添加随机后缀，避免重复文件名覆盖/无法区分
+        orig_filename = secure_filename(image.filename)
+        base, ext = os.path.splitext(orig_filename)
+        unique_suffix = str(int(time.time() * 1000))
+        final_filename = f"{base}_{unique_suffix}{ext}"
+        image.save(os.path.join(images_dir, final_filename))
+        return f'/images/{final_filename}'
     return '上传失败'
 
 # 现在系统没有办法get images/ 需要增加相关路由
@@ -257,8 +262,8 @@ if __name__ == '__main__':
     port = args.port
     # app.run(host='0.0.0.0', port=port, debug=False)
     from waitress import serve
-    print(f"Server running on http://localhost:5000/")
-    serve(app, host="0.0.0.0", port=5000)
+    print(f"Server running on http://localhost:{port}")
+    serve(app, host="0.0.0.0", port=port)
 
 # debug
 # flask run --debug --host=0.0.0.0 --port 5000

@@ -230,7 +230,7 @@ function generateFileLink(file, fileUrl, fileIcon, fileSize) {
     </div>`;
 
     if (file.type.startsWith('image/')) {
-        fileLink += `<img src="${fileUrl}" alt="${file.name}" />`;
+        fileLink = `<img src="${fileUrl}" alt="${file.name}" /> <br/>` + fileLink;
     } else if (file.type.startsWith('video/')) {
         fileLink = `<video controls>
             <source src="${fileUrl}" type="${file.type}">
