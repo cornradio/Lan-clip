@@ -257,9 +257,7 @@ function addCardToPage(fileLink, id) {
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <pre class="card-content" style="text-align: left; align-self: flex-start;">
-${fileLink}
-        </pre>
+        <pre class="card-content" style="text-align: left; align-self: flex-start;">${fileLink}</pre>
         <div class="card-time">${timeStr}</div>
     `;
     cardContainer.insertBefore(newCard, cardContainer.firstChild);
@@ -560,9 +558,7 @@ async function addCard() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-                <pre class="card-content" >
-${content}
-                </pre>
+                <pre class="card-content">${content}</pre>
                 <div class="card-time">${timeStr}</div>
             `;
 

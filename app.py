@@ -26,6 +26,15 @@ app = Flask(__name__,
 
 CARDS_DIR = 'cards'  # 新的卡片存储目录
 
+def log_action(action, details=""):
+    client_ip = request.remote_addr
+    # 如果有反向代理，尝试获取真实 IP
+    if request.headers.get('X-Forwarded-For'):
+        client_ip = request.headers.get('X-Forwarded-For').split(',')[0]
+    
+    now = time.strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{now}] {client_ip} -> {action} {details}")
+
 # 添加全局变量存储卡片
 cards_cache = []
 
@@ -100,6 +109,7 @@ def home():
         new_text = request.form.get('text', '')
         if new_text:
             save_card(new_text)
+            log_action("HOME_POST", f"添加文本: {new_text[:50]}...")
     
     return render_template('index.html', cards=cards_cache, port=5000)
 
@@ -121,6 +131,8 @@ def clear_history():
         if os.path.exists(UPLOAD_FOLDER):
             for file in os.listdir(UPLOAD_FOLDER):
                 os.remove(os.path.join(UPLOAD_FOLDER, file))
+
+        log_action("CLEAR_HISTORY", "清空了所有记录和文件")
 
 
         return '', 204
@@ -160,6 +172,7 @@ def delete_card():
                         except: pass
                 
                 os.remove(file_path)
+                log_action("DELETE_CARD", f"ID: {card_id}")
                 cards_cache = load_cards()
                 return jsonify({'status': 'success'})
 
@@ -187,6 +200,7 @@ def upload_image():
         unique_suffix = str(int(time.time() * 1000))
         final_filename = f"{base}_{unique_suffix}{ext}"
         image.save(os.path.join(images_dir, final_filename))
+        log_action("UPLOAD_IMAGE", f"文件名: {final_filename}")
         return f'/images/{final_filename}'
     return '上传失败'
 
@@ -213,6 +227,7 @@ def upload_file():
     
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
+    log_action("UPLOAD_FILE", f"文件名: {filename}")
     
     # 返回文件URL
     return url_for('uploaded_file', filename=filename)
@@ -233,6 +248,7 @@ def add_card():
         if content:
             new_id = save_card(content)
             if new_id:
+                log_action("API_ADD_CARD", f"ID: {new_id}, 内容: {content[:30]}...")
                 return jsonify({'status': 'success', 'content': content, 'id': str(new_id)})
         return jsonify({'status': 'error', 'message': '内容为空'}), 400
     except Exception as e:

@@ -100,9 +100,7 @@
                     </button>
 
                 </div>
-                <pre class="card-content">
-{{ card.content | safe }}
-                </pre>
+                <pre class="card-content">{{ card.content | safe }}</pre>
                 <div class="card-time">{{ card.time }}</div>
             </div>
             {% endfor %}
