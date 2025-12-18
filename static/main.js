@@ -203,16 +203,17 @@ async function uploadFiles(files) {
                 const fileLink = generateFileLink(file, fileUrl, fileIcon, fileSize);
 
                 // 使用 API 提交而不是点击按钮
-                await fetch('/api/add_card', {
+                const addResponse = await fetch('/api/add_card', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ text: fileLink })
                 });
+                const addResult = await addResponse.json();
 
                 // 直接在前端添加新卡片
-                addCardToPage(fileLink);
+                addCardToPage(fileLink, addResult.id);
             }
         } catch (error) {
             console.error('文件上传失败:', error);
@@ -241,10 +242,12 @@ function generateFileLink(file, fileUrl, fileIcon, fileSize) {
 }
 
 // 在页面中添加新卡片
-function addCardToPage(fileLink) {
+function addCardToPage(fileLink, id) {
     const cardContainer = document.querySelector('.card');
     const newCard = document.createElement('div');
     newCard.className = 'card-wrapper';
+    newCard.dataset.id = id;
+    const timeStr = getCurrentFormattedTime();
     newCard.innerHTML = `
         <div class="card-header">
             <button onclick="downloadCard(this)" class="icon-button raw-button download-button" style="padding: 4px 8px; font-size: 12px;" title="下载">
@@ -257,8 +260,18 @@ function addCardToPage(fileLink) {
         <pre class="card-content" style="text-align: left; align-self: flex-start;">
 ${fileLink}
         </pre>
+        <div class="card-time">${timeStr}</div>
     `;
     cardContainer.insertBefore(newCard, cardContainer.firstChild);
+}
+
+function getCurrentFormattedTime() {
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${month}-${day} ${hours}:${minutes}`;
 }
 
 // 显示上传错误
@@ -381,12 +394,8 @@ function closeRawContent() {
 }
 
 async function deleteCard(button) {
-    // if (!confirm('确定要删除这条记录吗？')) {
-    //     return;
-    // }
-
     const cardWrapper = button.closest('.card-wrapper');
-    const content = cardWrapper.querySelector('.card-content').innerHTML.trim();
+    const cardId = cardWrapper.dataset.id;
 
     try {
         const response = await fetch('/delete_card', {
@@ -395,7 +404,7 @@ async function deleteCard(button) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                content: content
+                id: cardId
             })
         });
 
@@ -534,6 +543,8 @@ async function addCard() {
             const cardContainer = document.querySelector('.card');
             const newCard = document.createElement('div');
             newCard.className = 'card-wrapper';
+            newCard.dataset.id = result.id;
+            const timeStr = getCurrentFormattedTime();
             newCard.innerHTML = `
                 <div class="card-header">
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
@@ -552,6 +563,7 @@ async function addCard() {
                 <pre class="card-content" >
 ${content}
                 </pre>
+                <div class="card-time">${timeStr}</div>
             `;
 
             // 将新卡片插入到最前面

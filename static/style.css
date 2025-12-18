@@ -217,8 +217,20 @@ a {
     border-radius: 22px;
 }
 
+.card-time {
+    position: absolute;
+    bottom: 8px;
+    left: 16px;
+    font-size: 11px;
+    color: var(--text-color);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+
 .card-content {
-    padding: 16px;
+    padding: 16px 16px 32px;
+    /* Increased bottom padding for time and buttons */
     margin: 0;
     font-size: 15px;
     line-height: 1.5;

@@ -44,11 +44,19 @@ def load_cards():
         ensure_cards_dir()
         cards = []
         card_files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
+        # 按照数字大小排序
         card_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
         for card_file in card_files:
+            card_id = os.path.splitext(os.path.basename(card_file))[0]
+            mtime = os.path.getmtime(card_file)
+            time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
             with open(card_file, 'r', encoding='utf-8') as f:
-                cards.append(f.read().strip())
-        cards_cache = cards  # 更新缓存
+                cards.append({
+                    'id': card_id,
+                    'content': f.read().strip(),
+                    'time': time_str
+                })
+        cards_cache = cards
         return cards
     except Exception as e:
         print(f"加载卡片出错: {str(e)}")
@@ -59,16 +67,28 @@ def save_card(content):
     try:
         ensure_cards_dir()
         existing_files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
-        next_num = len(existing_files) + 1
+        if not existing_files:
+            next_num = 1
+        else:
+            ids = [int(os.path.splitext(os.path.basename(f))[0]) for f in existing_files]
+            next_num = max(ids) + 1
+            
         file_path = os.path.join(CARDS_DIR, f'{next_num}.txt')
-        
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        cards_cache.append(content)  # 更新缓存
-        return True
+        
+        mtime = os.path.getmtime(file_path)
+        time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
+        new_card = {
+            'id': str(next_num),
+            'content': content,
+            'time': time_str
+        }
+        cards_cache.append(new_card)
+        return next_num
     except Exception as e:
         print(f"保存卡片出错: {str(e)}")
-        return False
+        return None
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -112,75 +132,42 @@ def clear_history():
 def delete_card():
     global cards_cache
     try:
-        card_content = request.json.get('content')
-        card_id = None
+        data = request.json
+        card_id = data.get('id')
         
-        # 先尝试通过文件链接匹配
-        if '<a href="/uploads/' in card_content:
-            file_matches = re.findall(r'<a href="/uploads/([^"]+)"', card_content)
-            if file_matches:
-                # 查找包含这些文件链接的卡片
-                files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
-                for file_path in files:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        file_content = f.read().strip()
-                        if any(match in file_content for match in file_matches):
-                            card_id = int(os.path.splitext(os.path.basename(file_path))[0])
-                            # 删除上传的文件
-                            for file_filename in file_matches:
-                                try:
-                                    file_path = os.path.join(UPLOAD_FOLDER, file_filename)
-                                    if os.path.exists(file_path):
-                                        os.remove(file_path)
-                                        print(f"删除文件: {file_path}")
-                                except Exception as e:
-                                    print(f"删除文件失败: {file_path}, 错误: {str(e)}")
-                            break
-
-        # 如果没找到，尝试通过图片路径匹配
-        if card_id is None and '/images/' in card_content:
-            image_paths = re.findall(r'/images/([^"]+)', card_content)
-            files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
-            for file_path in files:
+        # 尝试通过 ID 删除（首选）
+        if card_id:
+            file_path = os.path.join(CARDS_DIR, f'{card_id}.txt')
+            if os.path.exists(file_path):
+                # 如果是文件或图片，先处理相关文件删除
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    file_content = f.read().strip()
-                    if any(image_path in file_content for image_path in image_paths):
-                        card_id = int(os.path.splitext(os.path.basename(file_path))[0])
-                        # 删除图片文件
-                        for image_path in image_paths:
-                            full_image_path = os.path.join(get_app_path(), 'images', image_path)
-                            if os.path.exists(full_image_path):
-                                os.remove(full_image_path)
-                                print(f"删除图片: {full_image_path}")
-                        break
+                    content = f.read()
+                    # 删除关联的上传文件
+                    file_matches = re.findall(r'<a href="/uploads/([^"]+)"', content)
+                    for filename in file_matches:
+                        try:
+                            f_path = os.path.join(UPLOAD_FOLDER, filename)
+                            if os.path.exists(f_path):
+                                os.remove(f_path)
+                        except: pass
+                    # 删除关联的图片
+                    image_paths = re.findall(r'/images/([^"]+)', content)
+                    for img_name in image_paths:
+                        try:
+                            i_path = os.path.join(get_app_path(), 'images', img_name)
+                            if os.path.exists(i_path):
+                                os.remove(i_path)
+                        except: pass
+                
+                os.remove(file_path)
+                cards_cache = load_cards()
+                return jsonify({'status': 'success'})
 
-        # 如果还是没找到，尝试直接匹配内容
-        if card_id is None:
-            files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
-            for file_path in files:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    if card_content.strip()[:200] in f.read().strip():
-                        card_id = int(os.path.splitext(os.path.basename(file_path))[0])
-                        break
-
-        if card_id is None:
-            return jsonify({'status': 'error', 'message': '未找到要删除的内容'})
-
-        # 删除对应的txt文件
-        os.remove(os.path.join(CARDS_DIR, f'{card_id}.txt'))
-        
-        # 重命名后续文件，保持连续性
-        files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
-        for i in range(card_id + 1, len(files) + 2):
-            old_path = os.path.join(CARDS_DIR, f'{i}.txt')
-            if os.path.exists(old_path):
-                new_path = os.path.join(CARDS_DIR, f'{i-1}.txt')
-                os.rename(old_path, new_path)
-        
-        # 更新缓存
-        cards_cache = load_cards()
-        
-        return jsonify({'status': 'success'})
+        return jsonify({'status': 'error', 'message': '未找到对应的卡片 ID'})
+            
+    except Exception as e:
+        print(f"删除卡片出错: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)})
             
     except Exception as e:
         print(f"删除卡片出错: {str(e)}")
@@ -244,8 +231,9 @@ def add_card():
     try:
         content = request.json.get('text', '')
         if content:
-            if save_card(content):
-                return jsonify({'status': 'success', 'content': content})
+            new_id = save_card(content)
+            if new_id:
+                return jsonify({'status': 'success', 'content': content, 'id': str(new_id)})
         return jsonify({'status': 'error', 'message': '内容为空'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500

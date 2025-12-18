@@ -79,7 +79,7 @@
         <!-- 卡片展示区域 -->
         <div class="card">
             {% for card in cards|reverse %}
-            <div class="card-wrapper">
+            <div class="card-wrapper" data-id="{{ card.id }}">
                 <div class="card-header">
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
                         title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
@@ -101,8 +101,9 @@
 
                 </div>
                 <pre class="card-content">
-{{ card | safe }}
-            </pre>
+{{ card.content | safe }}
+                </pre>
+                <div class="card-time">{{ card.time }}</div>
             </div>
             {% endfor %}
         </div>
