@@ -23,14 +23,14 @@ function clearHistory() {
         alert('密码错误，操作已取消。');
         return;
     }
-    else  {
+    else {
         fetch('/clear', { method: 'POST' })
         document.querySelector('.card').innerHTML = '';
     }
 }
 function saveTextToLocalStorage() {
     const textarea = document.getElementById('input-text');
-    textarea.addEventListener('input', function() {
+    textarea.addEventListener('input', function () {
         localStorage.setItem('input-text-content', textarea.value);
     });
 }
@@ -44,7 +44,7 @@ function loadTextFromLocalStorage() {
 }
 
 // 在页面加载时调用这两个函数
-window.onload = function() {
+window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
 };
@@ -52,26 +52,26 @@ window.onload = function() {
 
 // 粘贴剪贴板内容
 function pasteClipboard() {
-    try{
+    try {
         navigator.clipboard.readText()
-        .then(text => {
-            document.getElementById('input-text').value = text;
-            document.getElementById('text-form').submit();
-        })
+            .then(text => {
+                document.getElementById('input-text').value = text;
+                document.getElementById('text-form').submit();
+            })
     }
-    catch{
-        alert('http 网站无法直接粘贴 ' );
+    catch {
+        alert('http 网站无法直接粘贴 ');
     }
 }
 
 // Ctrl Enter键提交
-document.getElementById('input-text').addEventListener('keydown', function(e) {
+document.getElementById('input-text').addEventListener('keydown', function (e) {
     console.log(e.key)
     if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault(); // 阻止默认的换行行为
         //press button #add-btn
         document.querySelector('#add-btn').click();
-    } 
+    }
     //F1 js
     if (e.key === 'F1') {
         e.preventDefault(); // 阻止默认的换行行为
@@ -83,7 +83,7 @@ document.getElementById('input-text').addEventListener('keydown', function(e) {
 <style>
 
 </style>`;
-        
+
     }
     //F2 sytyle
     if (e.key === 'F2') {
@@ -98,7 +98,7 @@ document.getElementById('input-text').addEventListener('keydown', function(e) {
 
 
 // 监听粘贴事件
-document.addEventListener('paste', async function(e) {
+document.addEventListener('paste', async function (e) {
     const items = e.clipboardData.items;
     let files = [];
     let text = '';
@@ -123,14 +123,14 @@ document.addEventListener('paste', async function(e) {
     }
 
     if (files.length > 0) {
-        const file = files[0]; 
+        const file = files[0];
         if (file.type.startsWith('image/')) {
             uploadImage(files);
         } else {
-            uploadFiles(files); 
+            uploadFiles(files);
         }
     }
-    
+
     if (text) {
         const textarea = document.querySelector('textarea[name="text"]');
         textarea.value += (textarea.value ? '\n' : '') + text;
@@ -138,7 +138,7 @@ document.addEventListener('paste', async function(e) {
 });
 
 // 图片上传相关函数
-document.getElementById('file-input').addEventListener('change', async function(e) {
+document.getElementById('file-input').addEventListener('change', async function (e) {
     if (e.target.files && e.target.files.length > 0) {
         await uploadImage(Array.from(e.target.files));
     }
@@ -146,18 +146,18 @@ document.getElementById('file-input').addEventListener('change', async function(
 
 async function uploadImage(files) {
     const fileArray = Array.isArray(files) ? files : [files];
-    
+
     try {
         // 一次处理一个文件
         for (const file of fileArray) {
             const formData = new FormData();
             formData.append('image', file);
-            
+
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData
             });
-            
+
             const imageUrl = await response.text();
             if (imageUrl) {
                 const fileSize = formatFileSize(file.size);
@@ -168,7 +168,7 @@ async function uploadImage(files) {
                         <span>${file.name} (${fileSize})</span>
                     </div>
                 </div>`;
-                
+
                 // 为每个文件单独提交
                 const textarea = document.querySelector('textarea[name="text"]');
                 textarea.value = content;
@@ -234,8 +234,8 @@ function generateFileLink(file, fileUrl, fileIcon, fileSize) {
     } else if (file.type.startsWith('video/')) {
         fileLink = `<video controls>
             <source src="${fileUrl}" type="${file.type}">
-        </video> <br/>` + fileLink ;
-    }   
+        </video> <br/>` + fileLink;
+    }
 
     return fileLink;
 }
@@ -298,7 +298,7 @@ function getFileIcon(filename) {
         'avi': 'fas fa-file-video',
         'mov': 'fas fa-file-video'
     };
-    
+
     return iconMap[ext] || 'fas fa-file';
 }
 
@@ -313,31 +313,31 @@ function formatFileSize(bytes) {
 // 拖放相关
 const dropZone = document.getElementById('drop-zone');
 
-document.addEventListener('dragenter', function(e) {
+document.addEventListener('dragenter', function (e) {
     e.preventDefault();
     dropZone.style.display = 'block';
 });
 
-document.addEventListener('dragover', function(e) {
+document.addEventListener('dragover', function (e) {
     e.preventDefault();
 });
 //drop
-dropZone.addEventListener('drop', async function(e) {
+dropZone.addEventListener('drop', async function (e) {
     e.preventDefault();
     dropZone.style.display = 'none';
     const files = Array.from(e.dataTransfer.files);
 
     if (files.length > 0) {
-        const file = files[0]; 
+        const file = files[0];
         if (file.type.startsWith('image/')) {
             uploadImage(files);
         } else {
-            uploadFiles(files); 
+            uploadFiles(files);
         }
     }
 });
 
-dropZone.addEventListener('dragleave', function(e) {
+dropZone.addEventListener('dragleave', function (e) {
     if (e.target === dropZone) {
         dropZone.style.display = 'none';
     }
@@ -348,25 +348,25 @@ function showRawContent(button) {
     const content = button.closest('.card-wrapper').querySelector('.card-content').innerHTML;
     const modal = document.getElementById('raw-content-modal');
     const rawContentText = document.getElementById('raw-content-text');
-    
+
     // 设置内容
     rawContentText.textContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
+
     // 显示弹窗
     modal.style.display = 'block';
-    
+
     // 禁止背景滚动
     document.body.style.overflow = 'hidden';
-    
+
     // 点击弹窗外部关闭
-    modal.addEventListener('click', function(e) {
+    modal.addEventListener('click', function (e) {
         if (e.target === modal) {
             closeRawContent();
         }
     });
-    
+
     // ESC键关闭
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeRawContent();
         }
@@ -381,13 +381,13 @@ function closeRawContent() {
 }
 
 async function deleteCard(button) {
-    if (!confirm('确定要删除这条记录吗？')) {
-        return;
-    }
-    
+    // if (!confirm('确定要删除这条记录吗？')) {
+    //     return;
+    // }
+
     const cardWrapper = button.closest('.card-wrapper');
     const content = cardWrapper.querySelector('.card-content').innerHTML.trim();
-    
+
     try {
         const response = await fetch('/delete_card', {
             method: 'POST',
@@ -398,7 +398,7 @@ async function deleteCard(button) {
                 content: content
             })
         });
-        
+
         const result = await response.json();
         if (result.status === 'success') {
             cardWrapper.remove();
@@ -429,19 +429,19 @@ async function downloadCard(button) {
     const cardContent = button.closest('.card-wrapper').querySelector('.card-content');
     const img = cardContent.querySelector('img');
     const fileLink = cardContent.querySelector('.file-card a');
-    
+
     try {
         if (img) {
             // 处理图片下载
             const response = await fetch(img.src);
             const blob = await response.blob();
-            
+
             const imageInfo = cardContent.querySelector('.image-info span');
             let fileName = 'image.png';
             if (imageInfo) {
                 fileName = imageInfo.textContent.split(' (')[0];
             }
-            
+
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -450,15 +450,15 @@ async function downloadCard(button) {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            
+
         } else if (fileLink) {
             // 处理文件下载 - 使用 fetch 获取文件内容
             const response = await fetch(fileLink.href);
             const blob = await response.blob();
-            
+
             // 从文件卡片中获取原始文件名
             const fileName = fileLink.textContent;
-            
+
             // 创建下载链接
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -468,7 +468,7 @@ async function downloadCard(button) {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            
+
         } else {
             // 处理文本内容下载
             const content = cardContent.innerText.trim();
@@ -482,7 +482,7 @@ async function downloadCard(button) {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         }
-        
+
         // 显示下载成功反馈
         button.title = '下载成功！';
         button.style.backgroundColor = '#4CAF50';
@@ -490,7 +490,7 @@ async function downloadCard(button) {
             button.title = '下载';
             button.style.backgroundColor = '';
         }, 1000);
-        
+
     } catch (error) {
         console.error('下载失败:', error);
         button.title = '下载失败';
@@ -515,9 +515,9 @@ async function addCard() {
     let content = textarea.value;
     content = processInput(content);
     textarea.value = ''; // 清空输入框 同步ls保存 避免残留
-    
+
     if (!content) return;
-    
+
     try {
         const response = await fetch('/api/add_card', {
             method: 'POST',
@@ -526,9 +526,9 @@ async function addCard() {
             },
             body: JSON.stringify({ text: content })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.status === 'success') {
             // 创建新卡片
             const cardContainer = document.querySelector('.card');
@@ -553,10 +553,10 @@ async function addCard() {
 ${content}
                 </pre>
             `;
-            
+
             // 将新卡片插入到最前面
             cardContainer.insertBefore(newCard, cardContainer.firstChild);
-            
+
             // 清空输入框 和历史记录
             textarea.value = '';
             localStorage.setItem('input-text-content', '');
@@ -647,36 +647,36 @@ function showImageModal(imageSrc) {
     const modalBody = document.querySelector('.image-modal-body');
     const currentImageNumber = document.getElementById('current-image-number');
     const totalImages = document.getElementById('total-images');
-    
+
     // 获取所有图片
     imageList = Array.from(document.querySelectorAll('.card-content img')).map(img => img.src);
     currentImageIndex = imageList.indexOf(imageSrc);
-    
+
     // 更新图片
     modalImage.src = imageSrc;
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
-    
+
     // 更新计数器
     currentImageNumber.textContent = currentImageIndex + 1;
     totalImages.textContent = imageList.length;
-    
+
     // 如果只有一张图片，添加single-image类
     if (imageList.length === 1) {
         modalBody.classList.add('single-image');
     } else {
         modalBody.classList.remove('single-image');
     }
-    
+
     // 点击模态窗背景关闭
-    modal.addEventListener('click', function(e) {
+    modal.addEventListener('click', function (e) {
         if (e.target === modal) {
             closeImageModal();
         }
     });
-    
+
     // 键盘快捷键
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeImageModal();
         } else if (e.key === 'o' && (e.ctrlKey || e.metaKey)) {
@@ -692,14 +692,14 @@ function showImageModal(imageSrc) {
 // 修改showPrevImage函数
 function showPrevImage() {
     if (imageList.length <= 1) return;
-    
+
     currentImageIndex = (currentImageIndex - 1 + imageList.length) % imageList.length;
     const modalImage = document.getElementById('modal-image');
     const currentImageNumber = document.getElementById('current-image-number');
-    
+
     modalImage.src = imageList[currentImageIndex];
     currentImageNumber.textContent = currentImageIndex + 1;
-    
+
     // 添加过渡动画
     modalImage.style.opacity = '0';
     setTimeout(() => {
@@ -710,14 +710,14 @@ function showPrevImage() {
 // 修改showNextImage函数
 function showNextImage() {
     if (imageList.length <= 1) return;
-    
+
     currentImageIndex = (currentImageIndex + 1) % imageList.length;
     const modalImage = document.getElementById('modal-image');
     const currentImageNumber = document.getElementById('current-image-number');
-    
+
     modalImage.src = imageList[currentImageIndex];
     currentImageNumber.textContent = currentImageIndex + 1;
-    
+
     // 添加过渡动画
     modalImage.style.opacity = '0';
     setTimeout(() => {
@@ -736,23 +736,23 @@ function closeImageModal() {
 }
 
 // 为所有图片添加点击事件
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 为现有的图片添加点击事件
     document.querySelectorAll('.card-content img').forEach(img => {
-        img.onclick = function() {
+        img.onclick = function () {
             showImageModal(this.src);
         };
     });
-    
+
     // 监听新添加的卡片
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
+    const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
             if (mutation.addedNodes.length) {
-                mutation.addedNodes.forEach(function(node) {
+                mutation.addedNodes.forEach(function (node) {
                     if (node.nodeType === 1) { // 元素节点
                         const images = node.querySelectorAll('img');
                         images.forEach(img => {
-                            img.onclick = function() {
+                            img.onclick = function () {
                                 showImageModal(this.src);
                             };
                         });
@@ -761,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // 开始观察卡片容器
     const cardContainer = document.querySelector('.card');
     if (cardContainer) {
@@ -785,7 +785,7 @@ function showSettings() {
     const modal = document.getElementById('settings-modal');
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
-    
+
     // 设置简洁模式开关状态
     const simpleModeToggle = document.getElementById('simple-mode-toggle');
     simpleModeToggle.checked = localStorage.getItem('simpleMode') === 'true';
@@ -800,7 +800,7 @@ function closeSettings() {
 function toggleSimpleMode() {
     const simpleMode = document.getElementById('simple-mode-toggle').checked;
     localStorage.setItem('simpleMode', simpleMode);
-    
+
     const background = document.getElementById('background');
     if (simpleMode) {
         background.style.display = 'none';
@@ -810,7 +810,7 @@ function toggleSimpleMode() {
 }
 
 // 页面加载时检查简洁模式状态
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const simpleMode = localStorage.getItem('simpleMode') === 'true';
     if (simpleMode) {
         document.getElementById('background').style.display = 'none';

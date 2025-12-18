@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html data-theme="dark">
+
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
-<!-- 添加苹果快捷方式图标 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 添加苹果快捷方式图标 -->
     <link rel="icon" href="{{ url_for('static', filename='lizard.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='liz2.png') }}" />
     <title>Lan-clip</title>
@@ -24,8 +25,9 @@
                 <span class="title">LAN Clip</span>
             </div>
             <div class="banner-right">
-                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button" style="padding: 0; margin-right: 15px;">
-                    <i class="fas fa-arrow-up"></i> 
+                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button"
+                    style="padding: 0; margin-right: 15px;">
+                    <i class="fas fa-arrow-up"></i>
                 </button>
                 <button onclick="showSettings()" class="icon-button" title="设置" style="padding: 0;">
                     <i class="fas fa-cog"></i>
@@ -37,192 +39,187 @@
         </div>
     </header>
 
-<div class="body">
+    <div class="body">
 
-    <div id="background"></div>
-    <!-- 拖放区域 -->
-    <div id="drop-zone" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px;">
-            拖放文件到这里上传
-        </div>
-    </div>
-<textarea id="input-text" name="text" placeholder="输入文本, + 发送"></textarea>
-
-    <!-- 输入区域 -->
-    <div class="input-form">
-        <div class="input-container">
-            
-            <div class="button-group">
-                <button onclick="addCard()" id="add-btn" class="icon-button" title="添加">
-                    <i class="fas fa-plus"></i>
-                </button>
-                <!-- <button type="button" onclick="pasteClipboard()" class="icon-button">
-                    <i class="fas fa-clipboard"></i> 粘贴
-                </button> -->
-                <!-- <button id="theme-toggle" onclick="toggleTheme()" class="icon-button">
-                    <i class="fas fa-moon dark-icon"></i>
-                </button> -->
-                <button onclick="window.location.href='/'" class="icon-button" title="刷新">
-                    <i class="fas fa-refresh"></i>
-                </button>
-                <!-- <button onclick="clearHistory()" class="icon-button" title="清空">
-                    <i class="fas fa-trash"></i>
-                </button> -->
-
-                
-                <button onclick="document.getElementById('file-input').click()" class="icon-button" title="上传图片">
-                    <i class="fas fa-image"></i>
-                    <input type="file" id="file-input" style="display: none;" accept="image/*" multiple onchange="uploadImages(this.files); this.value='';">
-                </button>
-                <button onclick="document.getElementById('file-input2').click()" class="icon-button" title="上传文件">
-                    <i class="fas fa-file-upload"></i>
-                    <input type="file" id="file-input2" style="display: none;" accept="*" multiple onchange="uploadFiles(this.files); this.value='';">
-                </button>
-
+        <div id="background"></div>
+        <!-- 拖放区域 -->
+        <div id="drop-zone"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px;">
+                拖放文件到这里上传
             </div>
         </div>
-    </div>
-
-    <!-- 卡片展示区域 -->
-    <div class="card">
-    {% for card in cards|reverse %}
-        <div class="card-wrapper">
-            <div class="card-header">
-                <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
-                    <i class="fas fa-copy"></i>
+        <!-- 输入区域 -->
+        <div class="input-form">
+            <div class="input-container">
+                <textarea id="input-text" name="text" placeholder="键入文本或粘贴图片..."></textarea>
+                <div class="button-group">
+                    <button onclick="addCard()" id="add-btn" class="icon-button" title="添加">
+                        <!-- <i class="fas fa-plus"></i> -->
+                        <span>发送</span>
                     </button>
-                <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容" style="padding: 4px 8px; font-size: 12px;">
-                    <i class="fas fa-code"></i>
-                </button>
-                <!-- downloadbtn -->
-                <button onclick="downloadCard(this)" class="icon-button raw-button download-button" style="padding: 4px 8px; font-size: 12px;" title="下载">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button onclick="deleteCard(this)" class="icon-button raw-button delete-button" style="padding: 4px 8px; font-size: 12px;" title="删除">
-                    <i class="fas fa-trash"></i>
-                </button>
-
+                    <button onclick="window.location.href='/'" class="icon-button" title="刷新">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button onclick="document.getElementById('file-input').click()" class="icon-button" title="上传图片">
+                        <i class="fas fa-image"></i>
+                        <input type="file" id="file-input" style="display: none;" accept="image/*" multiple
+                            onchange="uploadImages(this.files); this.value='';">
+                    </button>
+                    <button onclick="document.getElementById('file-input2').click()" class="icon-button" title="上传文件">
+                        <i class="fas fa-file-upload"></i>
+                        <input type="file" id="file-input2" style="display: none;" accept="*" multiple
+                            onchange="uploadFiles(this.files); this.value='';">
+                    </button>
+                </div>
             </div>
-            <pre class="card-content" >
+        </div>
+
+        <!-- 卡片展示区域 -->
+        <div class="card">
+            {% for card in cards|reverse %}
+            <div class="card-wrapper">
+                <div class="card-header">
+                    <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
+                        title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容"
+                        style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fas fa-code"></i>
+                    </button>
+                    <!-- downloadbtn -->
+                    <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
+                        style="padding: 4px 8px; font-size: 12px;" title="下载">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button onclick="deleteCard(this)" class="icon-button raw-button delete-button"
+                        style="padding: 4px 8px; font-size: 12px;" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+
+                </div>
+                <pre class="card-content">
 {{ card | safe }}
             </pre>
-        </div>
-    {% endfor %}
-    </div>
-
-    <!-- 添加弹窗HTML结构 -->
-    <div id="raw-content-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>原始内容</h3>
-                <button class="close-button" onclick="closeRawContent()">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
-            <div class="modal-body">
-                <pre id="raw-content-text"></pre>
-            </div>
+            {% endfor %}
         </div>
-    </div>
 
-    <!-- 修改图片预览模态窗 -->
-    <div id="image-modal" class="modal" style="display: none;">
-        <div class="modal-content image-modal-content">
-            <div class="modal-header">
-                <div class="image-counter">
-                    <span id="current-image-number">1</span>/<span id="total-images">1</span>
+        <!-- 添加弹窗HTML结构 -->
+        <div id="raw-content-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>原始内容</h3>
+                    <button class="close-button" onclick="closeRawContent()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="modal-actions">
-                    <button class="nav-button prev-button" onclick="showPrevImage()" title="上一张">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="nav-button next-button" onclick="showNextImage()" title="下一张">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                    <button class="action-button" onclick="openImageInNewTab()" title="在新标签页中打开">
-                        <i class="fas fa-external-link-alt"></i>
-                    </button>
-                    <button class="close-button" onclick="closeImageModal()" title="关闭">
+                <div class="modal-body">
+                    <pre id="raw-content-text"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修改图片预览模态窗 -->
+        <div id="image-modal" class="modal" style="display: none;">
+            <div class="modal-content image-modal-content">
+                <div class="modal-header">
+                    <div class="image-counter">
+                        <span id="current-image-number">1</span>/<span id="total-images">1</span>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="nav-button prev-button" onclick="showPrevImage()" title="上一张">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="nav-button next-button" onclick="showNextImage()" title="下一张">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="action-button" onclick="openImageInNewTab()" title="在新标签页中打开">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="close-button" onclick="closeImageModal()" title="关闭">
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                    </div>
+                </div>
+                <div class="modal-body image-modal-body">
+                    <img id="modal-image" src="" alt="预览图片">
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加设置模态窗 -->
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-content settings-modal-content">
+                <div class="modal-header">
+                    <h3>设置</h3>
+                    <button class="close-button" onclick="closeSettings()">
                         <i class="fas fa-times"></i>
                     </button>
 
                 </div>
-            </div>
-            <div class="modal-body image-modal-body">
-                <img id="modal-image" src="" alt="预览图片">
-            </div>
-        </div>
-    </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h4>显示设置</h4>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="simple-mode-toggle" onchange="toggleSimpleMode()">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">简洁模式（隐藏背景图片）</span>
+                        </div>
 
-    <!-- 添加设置模态窗 -->
-    <div id="settings-modal" class="modal" style="display: none;">
-        <div class="modal-content settings-modal-content">
-            <div class="modal-header">
-                <h3>设置</h3>
-                <button class="close-button" onclick="closeSettings()">
-                    <i class="fas fa-times"></i>
-                </button>
-                
-            </div>
-            <div class="modal-body">
-                <div class="settings-section">
-                    <h4>显示设置</h4>
-                    <div class="setting-item">
-                        <label class="switch">
-                            <input type="checkbox" id="simple-mode-toggle" onchange="toggleSimpleMode()">
-                            <span class="slider"></span>
-                        </label>
-                        <span class="setting-label">简洁模式（隐藏背景图片）</span>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="simple-mode-toggle" onchange="clearHistory()">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">清空历史记录</span>
+                        </div>
+                        </button>
                     </div>
 
-                    <div class="setting-item">
-                        <label class="switch">
-                            <input type="checkbox" id="simple-mode-toggle" onchange="clearHistory()">
-                            <span class="slider"></span>
-                        </label>
-                        <span class="setting-label">清空历史记录</span>
-                    </div>
-                </button>
-                </div>
-                
-                <div class="settings-section">
-                    <h4>使用提示</h4>
-                    <div class="tips-list">
-                        <div class="tip-item">
-                            <i class="fas fa-keyboard"></i>
-                            <span>Ctrl+Enter 快速发送消息</span>
-                        </div>
-                        <div class="tip-item">
-                            <i class="fas fa-image"></i>
-                            <span>点击图片可以查看大图</span>
-                        </div>
-                        <div class="tip-item">
-                            <i class="fas fa-arrows-alt"></i>
-                            <span>使用方向键切换图片</span>
-                        </div>
-                        <div class="tip-item">
-                            <i class="fas fa-file-upload"></i>
-                            <span>支持拖拽上传文件</span>
+                    <div class="settings-section">
+                        <h4>使用提示</h4>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Ctrl+Enter 快速发送消息</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-image"></i>
+                                <span>点击图片可以查看大图</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-arrows-alt"></i>
+                                <span>使用方向键切换图片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-file-upload"></i>
+                                <span>支持拖拽上传文件</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="settings-section">
-                    <h4>关于</h4>
-                    <div class="about-links">
-                        <a href="https://github.com/cornradio/LAN-clip" target="_blank" class="about-link">
-                            <i class="fab fa-github"></i>
-                            <span>GitHub 仓库</span>
-                        </a>
+                    <div class="settings-section">
+                        <h4>关于</h4>
+                        <div class="about-links">
+                            <a href="https://github.com/cornradio/LAN-clip" target="_blank" class="about-link">
+                                <i class="fab fa-github"></i>
+                                <span>GitHub 仓库</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <script src="{{ url_for('static', filename='main.js') }}"></script>
+
     </div>
-
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
-
-</div>
 </body>
 
-</html> 
+</html>
