@@ -644,6 +644,10 @@ a:hover {
 
 
 /* 图片模态窗样式 */
+#image-modal {
+    z-index: 2000;
+}
+
 .image-modal-content {
     max-width: 90%;
     width: auto;
@@ -895,4 +899,47 @@ input:checked+.slider:before {
 
 .about-link i {
     font-size: 20px;
+}
+
+/* 图册预览样式 */
+.gallery-modal-content {
+    max-width: 95%;
+    width: 95%;
+    height: 90vh;
+    margin: 2vh auto;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 20px;
+    align-content: start;
+}
+
+.gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 12px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.gallery-item:hover {
+    z-index: 1;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 600px) {
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+        padding: 10px;
+    }
 }

@@ -29,6 +29,10 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
+                <button onclick="showGallery()" class="icon-button" title="图册预览"
+                    style="padding: 0; margin-right: 15px;">
+                    <i class="fas fa-th-large"></i>
+                </button>
                 <button onclick="showSettings()" class="icon-button" title="设置" style="padding: 0;">
                     <i class="fas fa-cog"></i>
                 </button>
@@ -146,6 +150,21 @@
                 </div>
                 <div class="modal-body image-modal-body">
                     <img id="modal-image" src="" alt="预览图片">
+                </div>
+            </div>
+        </div>
+
+        <!-- 图册预览模态窗 -->
+        <div id="gallery-modal" class="modal" style="display: none;">
+            <div class="modal-content gallery-modal-content">
+                <div class="modal-header">
+                    <h3>图册预览</h3>
+                    <button class="close-button" onclick="closeGallery()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body gallery-grid" id="gallery-grid">
+                    <!-- 图片将通过JS动态加载 -->
                 </div>
             </div>
         </div>

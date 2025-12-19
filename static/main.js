@@ -778,7 +778,13 @@ function showNextImage() {
 function closeImageModal() {
     const modal = document.getElementById('image-modal');
     modal.style.display = 'none';
-    document.body.style.overflow = '';
+
+    // 如果图册模态窗没有显示，才恢复背景滚动
+    const galleryModal = document.getElementById('gallery-modal');
+    if (galleryModal.style.display !== 'block') {
+        document.body.style.overflow = '';
+    }
+
     // 清除图片列表
     imageList = [];
     currentImageIndex = 0;
@@ -904,3 +910,44 @@ function updateCompressionQuality(value) {
     localStorage.setItem('compressionQuality', value);
     document.getElementById('quality-value').textContent = value;
 }
+
+// 图册预览相关函数
+function showGallery() {
+    const modal = document.getElementById('gallery-modal');
+    const grid = document.getElementById('gallery-grid');
+    grid.innerHTML = ''; // 清空现有内容
+
+    // 获取所有卡片中的图片
+    const images = document.querySelectorAll('.card-content img');
+
+    if (images.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-color); opacity: 0.6;">暂无图片</div>';
+    } else {
+        images.forEach(img => {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+
+            const galleryImg = document.createElement('img');
+            galleryImg.src = img.src;
+            galleryImg.alt = '图册图片';
+
+            item.onclick = () => {
+                // 不再关闭图册，直接显示大图
+                showImageModal(img.src);
+            };
+
+            item.appendChild(galleryImg);
+            grid.appendChild(item);
+        });
+    }
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeGallery() {
+    const modal = document.getElementById('gallery-modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
