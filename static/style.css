@@ -66,8 +66,8 @@ body {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--input-border);
-    border-radius: 28px;
     padding: 16px 20px;
+    border-radius: 28px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -76,7 +76,7 @@ body {
 
 .input-container:focus-within {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    border-color: #a8c7ff;
+    border-color: #ffffff65;
     background: var(--txtbg-color);
 }
 

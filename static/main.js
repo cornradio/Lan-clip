@@ -145,11 +145,23 @@ document.getElementById('file-input').addEventListener('change', async function 
 });
 
 async function uploadImage(files) {
-    const fileArray = Array.isArray(files) ? files : [files];
+    const fileArray = Array.from(files);
+    const autoCompress = localStorage.getItem('autoCompress') === 'true';
+    const quality = parseInt(localStorage.getItem('compressionQuality')) || 80;
 
     try {
         // 一次处理一个文件
-        for (const file of fileArray) {
+        for (let file of fileArray) {
+            // 如果开启了自动压缩且是图片
+            if (autoCompress && file.type.startsWith('image/')) {
+                console.log(`正在压缩图片: ${file.name}, 质量: ${quality}%`);
+                const compressedBlob = await compressImage(file, quality / 100);
+                file = new File([compressedBlob], file.name, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now()
+                });
+            }
+
             const formData = new FormData();
             formData.append('image', file);
 
@@ -178,6 +190,35 @@ async function uploadImage(files) {
     } catch (error) {
         console.error('上传出错:', error);
     }
+}
+
+// 图片压缩函数
+async function compressImage(file, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // 保持原始尺寸
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // 转换为 jpeg 进行压缩
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
 }
 
 
@@ -797,6 +838,21 @@ function showSettings() {
     // 设置简洁模式开关状态
     const simpleModeToggle = document.getElementById('simple-mode-toggle');
     simpleModeToggle.checked = localStorage.getItem('simpleMode') === 'true';
+
+    // 设置自动压缩开关状态
+    const autoCompressToggle = document.getElementById('auto-compress-toggle');
+    const autoCompress = localStorage.getItem('autoCompress') === 'true';
+    autoCompressToggle.checked = autoCompress;
+
+    // 显示/隐藏压缩质量容器
+    const qualityContainer = document.getElementById('compression-quality-container');
+    qualityContainer.style.display = autoCompress ? 'flex' : 'none';
+
+    // 设置压缩质量滑块
+    const qualitySlider = document.getElementById('compression-quality-slider');
+    const quality = localStorage.getItem('compressionQuality') || 80;
+    qualitySlider.value = quality;
+    document.getElementById('quality-value').textContent = quality;
 }
 
 function closeSettings() {
@@ -817,11 +873,34 @@ function toggleSimpleMode() {
     }
 }
 
-// 页面加载时检查简洁模式状态
+// 页面加载时检查设置状态
 document.addEventListener('DOMContentLoaded', function () {
     const simpleMode = localStorage.getItem('simpleMode') === 'true';
     if (simpleMode) {
-        document.getElementById('background').style.display = 'none';
-        document.getElementById('simple-mode-toggle').checked = true;
+        const background = document.getElementById('background');
+        if (background) background.style.display = 'none';
+        const toggle = document.getElementById('simple-mode-toggle');
+        if (toggle) toggle.checked = true;
+    }
+
+    // 初始化压缩设置
+    if (localStorage.getItem('autoCompress') === null) {
+        localStorage.setItem('autoCompress', 'false');
+    }
+    if (localStorage.getItem('compressionQuality') === null) {
+        localStorage.setItem('compressionQuality', '80');
     }
 });
+
+function toggleAutoCompress() {
+    const autoCompress = document.getElementById('auto-compress-toggle').checked;
+    localStorage.setItem('autoCompress', autoCompress);
+
+    const qualityContainer = document.getElementById('compression-quality-container');
+    qualityContainer.style.display = autoCompress ? 'flex' : 'none';
+}
+
+function updateCompressionQuality(value) {
+    localStorage.setItem('compressionQuality', value);
+    document.getElementById('quality-value').textContent = value;
+}
