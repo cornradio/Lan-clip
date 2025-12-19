@@ -81,8 +81,8 @@
         </div>
 
         <!-- 卡片展示区域 -->
-        <div class="card">
-            {% for card in cards|reverse %}
+        <div class="card" id="card-container">
+            {% for card in (cards|reverse|list)[:20] %}
             <div class="card-wrapper" data-id="{{ card.id }}">
                 <div class="card-header">
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
@@ -109,6 +109,12 @@
             </div>
             {% endfor %}
         </div>
+
+        <div id="main-loader"
+            style="text-align: center; padding: 20px; display: none; color: var(--text-color); opacity: 0.6;">
+            <i class="fas fa-spinner fa-spin"></i> 正在加载更多...
+        </div>
+
 
         <!-- 添加弹窗HTML结构 -->
         <div id="raw-content-modal" class="modal" style="display: none;">

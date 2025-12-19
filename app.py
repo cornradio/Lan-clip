@@ -254,6 +254,26 @@ def add_card():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/cards', methods=['GET'])
+def get_cards_api():
+    global cards_cache
+    if not cards_cache:
+        cards_cache = load_cards()
+    
+    page = int(request.args.get('page', 1))
+    size = int(request.args.get('size', 20))
+    
+    # 倒序排列
+    all_cards = cards_cache[::-1]
+    
+    start = (page - 1) * size
+    end = start + size
+    
+    return jsonify({
+        'cards': all_cards[start:end],
+        'has_more': end < len(all_cards)
+    })
+
 if __name__ == '__main__':
     if sys.platform == 'darwin':  # macOS
         parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')

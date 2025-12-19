@@ -43,11 +43,75 @@ function loadTextFromLocalStorage() {
     }
 }
 
+// 分页相关变量
+let currentPage = 1;
+let hasMore = true;
+let isLoading = false;
+const PAGE_SIZE = 20;
+
 // 在页面加载时调用这两个函数
 window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
+
+    // 监听滚动加载
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+            if (hasMore && !isLoading) {
+                loadMoreCards();
+            }
+        }
+    });
 };
+
+async function loadMoreCards() {
+    if (isLoading) return;
+    isLoading = true;
+
+    const loader = document.getElementById('main-loader');
+    if (loader) loader.style.display = 'block';
+
+    try {
+        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}`);
+        const data = await response.json();
+
+        const container = document.getElementById('card-container');
+        data.cards.forEach(card => {
+            const cardHtml = `
+                <div class="card-wrapper" data-id="${card.id}">
+                    <div class="card-header">
+                        <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
+                            title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容"
+                            style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fas fa-code"></i>
+                        </button>
+                        <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
+                            style="padding: 4px 8px; font-size: 12px;" title="下载">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button onclick="deleteCard(this)" class="icon-button raw-button delete-button"
+                            style="padding: 4px 8px; font-size: 12px;" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <pre class="card-content">${card.content}</pre>
+                    <div class="card-time">${card.time}</div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+
+        currentPage++;
+        hasMore = data.has_more;
+    } catch (error) {
+        console.error('加载更多卡片失败:', error);
+    } finally {
+        isLoading = false;
+        if (loader) loader.style.display = 'none';
+    }
+}
 
 
 // 粘贴剪贴板内容
