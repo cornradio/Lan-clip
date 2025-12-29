@@ -1,35 +1,34 @@
-<img width="2544" height="1868" alt="image" src="https://github.com/user-attachments/assets/7d52560f-b7fb-4543-a2ce-194d55aa5e70" />
 
+# LAN Clipboard - 局域网共享工具
 
-# LAN Clipboard - A Shared Tool for Your Local Network
+快速在局域网内共享文本、图片和文件！
+功能亮点
+- 支持文本 / 图片 / 文件存储
+- 自动识别并转换 URL 为超链接
+- 内网高速传输
+- Windows 托盘模式
+- 多设备同步刷新
+- 全部删除密码：1230
 
-Quickly share text, images, and files within your local network!
+# 安装与启动
+1. Windows 桌面版
 
-## Features
-- Supports text, image, and file storage
-- Automatically recognizes and converts URLs into hyperlinks
-- High-speed transfer over the local network
-- Windows tray mode
-- Synchronized updates across multiple devices
+> 从 Release 页面下载 exe 文件
 
-# Installation and Startup
-
-## 1. Windows Desktop Version
-> Download the .exe file from the Releases page.
-
-## 2. Docker Deployment (Server)
-
-### Docker Hub Image
-```bash
+2. Docker 部署（服务器）
+bash
+## Docker Hub镜像
+```
 docker run -d -p 5000:5000 kasusa/lan-clipboard-app:latest
 ```
 
-### Aliyun Image (for users in mainland China)
-```bash
+## 阿里云镜像（国内加速）
+```
 docker run -d -p 5000:5000 registry.cn-hangzhou.aliyuncs.com/aaas-images/lan-clipboard-app:latest
 ```
 
-## 3. Running from Source (Development/Debugging)
-```bash
-flask run --host=0.0.0.0 --port 5002
+3. 源码运行（开发 / 调试）
 ```
+python app.py
+```
+
