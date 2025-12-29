@@ -239,6 +239,9 @@ a {
     border: none;
     width: 100%;
     box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .raw-button {

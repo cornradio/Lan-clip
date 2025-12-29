@@ -89,9 +89,9 @@
                         title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容"
+                    <button onclick="showEditModal(this)" class="icon-button raw-button" title="编辑"
                         style="padding: 4px 8px; font-size: 12px;">
-                        <i class="fas fa-code"></i>
+                        <i class="fas fa-edit"></i>
                     </button>
                     <!-- downloadbtn -->
                     <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
@@ -116,20 +116,7 @@
         </div>
 
 
-        <!-- 添加弹窗HTML结构 -->
-        <div id="raw-content-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>原始内容</h3>
-                    <button class="close-button" onclick="closeRawContent()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <pre id="raw-content-text"></pre>
-                </div>
-            </div>
-        </div>
+
 
         <!-- 修改图片预览模态窗 -->
         <div id="image-modal" class="modal" style="display: none;">

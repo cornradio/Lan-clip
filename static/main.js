@@ -84,9 +84,9 @@ async function loadMoreCards() {
                             title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容"
+                        <button onclick="editCard(this)" class="icon-button raw-button" title="编辑"
                             style="padding: 4px 8px; font-size: 12px;">
-                            <i class="fas fa-code"></i>
+                            <i class="fas fa-edit"></i>
                         </button>
                         <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
                             style="padding: 4px 8px; font-size: 12px;" title="下载">
@@ -355,6 +355,12 @@ function addCardToPage(fileLink, id) {
     const timeStr = getCurrentFormattedTime();
     newCard.innerHTML = `
         <div class="card-header">
+            <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
+                <i class="fas fa-copy"></i>
+            </button>
+            <button onclick="editCard(this)" class="icon-button raw-button" title="编辑" style="padding: 4px 8px; font-size: 12px;">
+                <i class="fas fa-edit"></i>
+            </button>
             <button onclick="downloadCard(this)" class="icon-button raw-button download-button" style="padding: 4px 8px; font-size: 12px;" title="下载">
                 <i class="fas fa-download"></i>
             </button>
@@ -460,40 +466,21 @@ dropZone.addEventListener('dragleave', function (e) {
 });
 
 // 卡片操作相关函数
-function showRawContent(button) {
-    const content = button.closest('.card-wrapper').querySelector('.card-content').innerHTML;
-    const modal = document.getElementById('raw-content-modal');
-    const rawContentText = document.getElementById('raw-content-text');
+async function editCard(button) {
+    const cardWrapper = button.closest('.card-wrapper');
+    const content = cardWrapper.querySelector('.card-content').innerText;
 
-    // 设置内容
-    rawContentText.textContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // 1. 将内容放入输入框
+    const textarea = document.getElementById('input-text');
+    textarea.value = content;
+    localStorage.setItem('input-text-content', content);
 
-    // 显示弹窗
-    modal.style.display = 'block';
+    // 2. 滚动到顶部并聚焦
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    textarea.focus();
 
-    // 禁止背景滚动
-    document.body.style.overflow = 'hidden';
-
-    // 点击弹窗外部关闭
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
-            closeRawContent();
-        }
-    });
-
-    // ESC键关闭
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closeRawContent();
-        }
-    });
-}
-
-// 添加关闭弹窗函数
-function closeRawContent() {
-    const modal = document.getElementById('raw-content-modal');
-    modal.style.display = 'none';
-    document.body.style.overflow = ''; // 恢复背景滚动
+    // 3. 删除原卡片
+    await deleteCard(button);
 }
 
 async function deleteCard(button) {
@@ -653,8 +640,8 @@ async function addCard() {
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
                     <i class="fas fa-copy"></i>
                     </button>
-                    <button onclick="showRawContent(this)" class="icon-button raw-button" title="查看原始内容" style="padding: 4px 8px; font-size: 12px;">
-                        <i class="fas fa-code"></i>
+                    <button onclick="editCard(this)" class="icon-button raw-button" title="编辑" style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fas fa-edit"></i>
                     </button>
                     <button onclick="downloadCard(this)" class="icon-button raw-button download-button" style="padding: 4px 8px; font-size: 12px;" title="下载">
                         <i class="fas fa-download"></i>
