@@ -1,6 +1,8 @@
 
 # LAN Clipboard - 局域网共享工具
 
+<img width="2326" height="1642" alt="图片" src="https://github.com/user-attachments/assets/c0f2e568-2389-4b16-a6bc-8ee7aa888938" />
+
 快速在局域网内共享文本、图片和文件！
 功能亮点
 - 支持文本 / 图片 / 文件存储
