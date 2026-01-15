@@ -7,7 +7,9 @@ import webbrowser
 import glob
 from werkzeug.utils import secure_filename
 import argparse
+import argparse
 import time
+import auth_service
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -63,7 +65,8 @@ def load_cards():
                 cards.append({
                     'id': card_id,
                     'content': f.read().strip(),
-                    'time': time_str
+                    'time': time_str,
+                    'timestamp': mtime
                 })
         cards_cache = cards
         return cards
@@ -91,7 +94,8 @@ def save_card(content):
         new_card = {
             'id': str(next_num),
             'content': content,
-            'time': time_str
+            'time': time_str,
+            'timestamp': mtime
         }
         cards_cache.append(new_card)
         return next_num
@@ -115,6 +119,12 @@ def home():
 
 @app.route('/clear', methods=['POST'])
 def clear_history():
+    # Verify password
+    data = request.get_json(silent=True) or {}
+    password = data.get('password')
+    if not auth_service.verify_password(password):
+         return jsonify({'error': 'Password authentication failed'}), 401
+
     global cards_cache
     try:
         if os.path.exists(CARDS_DIR):
@@ -232,11 +242,18 @@ def upload_file():
     # 返回文件URL
     return url_for('uploaded_file', filename=filename)
 
-# 添加路由来访问上传的文件
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     uploads_dir = os.path.join(get_app_path(), 'uploads')
     return send_from_directory(uploads_dir, filename)
+
+@app.route('/api/verify_password', methods=['POST'])
+def verify_password_api():
+    data = request.json
+    pwd = data.get('password')
+    if auth_service.verify_password(pwd):
+        return jsonify({'valid': True})
+    return jsonify({'valid': False})
 
 def open_browser():
     webbrowser.open('http://127.0.0.1:5000')

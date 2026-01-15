@@ -2,6 +2,42 @@
 document.documentElement.setAttribute('data-theme', 'dark');
 document.getElementById('input-text').focus();
 
+// 验证密码
+async function verifyPassword(inputPwd) {
+    try {
+        const res = await fetch('/api/verify_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: inputPwd })
+        });
+        const data = await res.json();
+        return data.valid;
+    } catch {
+        return false;
+    }
+}
+
+// 格式化时间戳
+function formatTimestamp(ts) {
+    if (!ts) return '';
+    const date = new Date(ts * 1000);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 更新所有时间显示
+function updateAllTimes() {
+    document.querySelectorAll('.card-time[data-timestamp]').forEach(el => {
+        const ts = parseFloat(el.dataset.timestamp);
+        if (ts) el.textContent = formatTimestamp(ts);
+    });
+}
+
 // 主题切换
 function toggleTheme() {
     const html = document.documentElement;
@@ -16,16 +52,31 @@ const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
 // 清空历史记录
-function clearHistory() {
+async function clearHistory() {
     // 输入密码
-    x = prompt('请输入密码以确认清空历史记录:');
-    if (x !== '1230') {
+    const pwd = prompt('请输入密码以确认清空历史记录:');
+    if (!pwd) return;
+
+    if (await verifyPassword(pwd)) {
+        try {
+            const response = await fetch('/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password: pwd })
+            });
+            if (response.ok) {
+                document.querySelector('.card').innerHTML = '';
+            } else {
+                alert('清空失败');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('请求出错');
+        }
+    } else {
         alert('密码错误，操作已取消。');
-        return;
-    }
-    else {
-        fetch('/clear', { method: 'POST' })
-        document.querySelector('.card').innerHTML = '';
     }
 }
 function saveTextToLocalStorage() {
@@ -43,22 +94,88 @@ function loadTextFromLocalStorage() {
     }
 }
 
-// 分页相关变量
+// 分页 & 历史显示相关变量
 let currentPage = 1;
 let hasMore = true;
 let isLoading = false;
 const PAGE_SIZE = 20;
 
+// 旧内容访问控制（3 天前）
+const OLD_DAYS_LIMIT = 3;
+const VIEW_OLD_KEY = 'viewOldContentUnlocked';
+let oldContentUnlocked = localStorage.getItem(VIEW_OLD_KEY) === 'true';
+let hasOlderCards = false;
+let oldPasswordPrompting = false;
+
+function isCardOlderThanDays(timeStr, days) {
+    if (!timeStr) return false;
+    // 把 "YYYY-MM-DD HH:MM:SS" 转成浏览器更好解析的格式
+    const normalized = timeStr.replace(' ', 'T');
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return false;
+    const diff = Date.now() - d.getTime();
+    return diff > days * 24 * 60 * 60 * 1000;
+}
+
+async function promptUnlockOldContent() {
+    if (oldContentUnlocked || oldPasswordPrompting) return;
+    oldPasswordPrompting = true;
+
+    const pwd = prompt('3 天前的历史记录已保护，需要输入密码才能查看：');
+    if (pwd === null) {
+        oldPasswordPrompting = false;
+        return;
+    }
+
+    if (await verifyPassword(pwd)) {
+        localStorage.setItem(VIEW_OLD_KEY, 'true');
+        oldContentUnlocked = true;
+        alert('已解锁所有历史记录，将重新加载页面。');
+        location.reload();
+    } else {
+        alert('密码错误，无法查看 3 天前的内容。');
+        oldPasswordPrompting = false;
+    }
+}
+
 // 在页面加载时调用这两个函数
 window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
+    updateAllTimes();
 
-    // 监听滚动加载
+    // 首屏内容中过滤 3 天前的卡片（除非已解锁）
+    if (!oldContentUnlocked) {
+        try {
+            const container = document.getElementById('card-container');
+            if (container) {
+                const wrappers = Array.from(container.querySelectorAll('.card-wrapper'));
+                for (let i = 0; i < wrappers.length; i++) {
+                    const timeEl = wrappers[i].querySelector('.card-time');
+                    const timeText = timeEl ? timeEl.textContent.trim() : '';
+                    if (isCardOlderThanDays(timeText, OLD_DAYS_LIMIT)) {
+                        hasOlderCards = true;
+                        // 删除这条以及后面的所有卡片（它们更老）
+                        for (let j = i; j < wrappers.length; j++) {
+                            wrappers[j].remove();
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('过滤旧卡片失败:', e);
+        }
+    }
+
+    // 监听滚动加载 / 触发旧内容密码提示
     window.addEventListener('scroll', () => {
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
             if (hasMore && !isLoading) {
                 loadMoreCards();
+            } else if (!hasMore && hasOlderCards && !oldContentUnlocked) {
+                // 没有更多新内容，但存在旧内容且未解锁
+                promptUnlockOldContent();
             }
         }
     });
@@ -77,6 +194,15 @@ async function loadMoreCards() {
 
         const container = document.getElementById('card-container');
         data.cards.forEach(card => {
+            // 未解锁旧内容时，遇到 3 天前的卡片就停止继续加载
+            if (!oldContentUnlocked && isCardOlderThanDays(card.time, OLD_DAYS_LIMIT)) {
+                hasOlderCards = true;
+                hasMore = false;
+                return;
+            }
+
+            const displayTime = card.timestamp ? formatTimestamp(card.timestamp) : card.time;
+
             const cardHtml = `
                 <div class="card-wrapper" data-id="${card.id}">
                     <div class="card-header">
@@ -98,7 +224,7 @@ async function loadMoreCards() {
                         </button>
                     </div>
                     <pre class="card-content">${card.content}</pre>
-                    <div class="card-time">${card.time}</div>
+                    <div class="card-time" data-timestamp="${card.timestamp || ''}">${displayTime}</div>
                 </div>`;
             container.insertAdjacentHTML('beforeend', cardHtml);
         });
@@ -201,6 +327,83 @@ document.addEventListener('paste', async function (e) {
     }
 });
 
+// 上传进度相关（真实进度）
+let currentUploadPercent = 0;
+let uploadProgressVisible = false;
+const UPLOAD_PROGRESS_MIN_SIZE = 2000 * 1024; // 2M 以上显示进度窗
+
+function showUploadProgress(totalCount) {
+    const modal = document.getElementById('upload-modal');
+    const barInner = document.getElementById('upload-progress-inner');
+    const statusText = document.getElementById('upload-status-text');
+    if (!modal || !barInner || !statusText) return;
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    currentUploadPercent = 0;
+    barInner.style.width = '0%';
+    statusText.textContent = totalCount > 1
+        ? `准备上传 ${totalCount} 个文件...`
+        : '正在上传文件...';
+
+    uploadProgressVisible = true;
+}
+
+function updateUploadProgress(doneCount, totalCount) {
+    const barInner = document.getElementById('upload-progress-inner');
+    const statusText = document.getElementById('upload-status-text');
+    if (!uploadProgressVisible || !barInner || !statusText || totalCount === 0) return;
+
+    const percent = Math.round((doneCount / totalCount) * 100);
+    currentUploadPercent = percent;
+    barInner.style.width = `${percent}%`;
+    statusText.textContent = `正在上传 (${Math.min(doneCount, totalCount).toFixed(1).replace(/\.0$/, '')}/${totalCount})...`;
+}
+
+function hideUploadProgress() {
+    const modal = document.getElementById('upload-modal');
+    const statusText = document.getElementById('upload-status-text');
+    const barInner = document.getElementById('upload-progress-inner');
+    if (!uploadProgressVisible || !modal) return;
+
+    if (barInner) {
+        currentUploadPercent = 100;
+        barInner.style.width = '100%';
+    }
+    if (statusText) statusText.textContent = '上传完成';
+
+    uploadProgressVisible = false;
+
+    // 稍微停顿一下再关闭，让用户能看到 100%
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }, 400);
+}
+
+// 使用 XHR 支持上传进度
+function uploadWithProgress(url, formData, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+
+        if (xhr.upload && typeof onProgress === 'function') {
+            xhr.upload.onprogress = onProgress;
+        }
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr.responseText);
+            } else {
+                reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+        };
+
+        xhr.onerror = () => reject(new Error('Upload network error'));
+        xhr.send(formData);
+    });
+}
+
 // 图片上传相关函数
 document.getElementById('file-input').addEventListener('change', async function (e) {
     if (e.target.files && e.target.files.length > 0) {
@@ -214,7 +417,15 @@ async function uploadImage(files) {
     const quality = parseInt(localStorage.getItem('compressionQuality')) || 80;
 
     try {
+        if (fileArray.length > 0) {
+            const totalSize = fileArray.reduce((sum, f) => sum + (f.size || 0), 0);
+            if (totalSize >= UPLOAD_PROGRESS_MIN_SIZE || fileArray.length > 1) {
+                showUploadProgress(fileArray.length);
+            }
+        }
+
         // 一次处理一个文件
+        let doneCount = 0;
         for (let file of fileArray) {
             // 如果开启了自动压缩且是图片
             if (autoCompress && file.type.startsWith('image/')) {
@@ -229,12 +440,14 @@ async function uploadImage(files) {
             const formData = new FormData();
             formData.append('image', file);
 
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+            const imageUrl = await uploadWithProgress('/upload', formData, (e) => {
+                if (!uploadProgressVisible) return;
+                if (e.lengthComputable) {
+                    const current = doneCount + e.loaded / e.total;
+                    updateUploadProgress(current, fileArray.length);
+                }
             });
 
-            const imageUrl = await response.text();
             if (imageUrl) {
                 const fileSize = formatFileSize(file.size);
                 const content = `<div class="image-card">
@@ -250,9 +463,14 @@ async function uploadImage(files) {
                 textarea.value = content;
                 document.querySelector('#add-btn').click();
             }
+
+            doneCount++;
+            updateUploadProgress(doneCount, fileArray.length);
         }
     } catch (error) {
         console.error('上传出错:', error);
+    } finally {
+        hideUploadProgress();
     }
 }
 
@@ -290,40 +508,54 @@ async function compressImage(file, quality) {
 async function uploadFiles(files) {
     const fileArray = Array.from(files);
     console.log('转换后的文件数组:', fileArray); // 调试用
-
-    for (const file of fileArray) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const response = await fetch('/upload_file', {
-                method: 'POST',
-                body: formData
-            });
-
-            const fileUrl = await response.text();
-            if (fileUrl) {
-                const fileIcon = getFileIcon(file.name);
-                const fileSize = formatFileSize(file.size);
-                const fileLink = generateFileLink(file, fileUrl, fileIcon, fileSize);
-
-                // 使用 API 提交而不是点击按钮
-                const addResponse = await fetch('/api/add_card', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ text: fileLink })
-                });
-                const addResult = await addResponse.json();
-
-                // 直接在前端添加新卡片
-                addCardToPage(fileLink, addResult.id);
+    try {
+        if (fileArray.length > 0) {
+            const totalSize = fileArray.reduce((sum, f) => sum + (f.size || 0), 0);
+            if (totalSize >= UPLOAD_PROGRESS_MIN_SIZE || fileArray.length > 1) {
+                showUploadProgress(fileArray.length);
             }
-        } catch (error) {
-            console.error('文件上传失败:', error);
-            showUploadError(error);
         }
+
+        let doneCount = 0;
+        for (const file of fileArray) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const fileUrl = await uploadWithProgress('/upload_file', formData, (e) => {
+                    if (!uploadProgressVisible) return;
+                    if (e.lengthComputable) {
+                        const current = doneCount + e.loaded / e.total;
+                        updateUploadProgress(current, fileArray.length);
+                    }
+                });
+                if (fileUrl) {
+                    const fileIcon = getFileIcon(file.name);
+                    const fileSize = formatFileSize(file.size);
+                    const fileLink = generateFileLink(file, fileUrl, fileIcon, fileSize);
+
+                    // 使用 API 提交而不是点击按钮
+                    const addResponse = await fetch('/api/add_card', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ text: fileLink })
+                    });
+                    const addResult = await addResponse.json();
+
+                    // 直接在前端添加新卡片
+                    addCardToPage(fileLink, addResult.id);
+                }
+            } catch (error) {
+                console.error('文件上传失败:', error);
+                showUploadError(error);
+            }
+            doneCount++;
+            updateUploadProgress(doneCount, fileArray.length);
+        }
+    } finally {
+        hideUploadProgress();
     }
 }
 
@@ -353,6 +585,10 @@ function addCardToPage(fileLink, id) {
     newCard.className = 'card-wrapper';
     newCard.dataset.id = id;
     const timeStr = getCurrentFormattedTime();
+
+    // Add timestamp for new cards too
+    const timestamp = Date.now() / 1000;
+
     newCard.innerHTML = `
         <div class="card-header">
             <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
@@ -369,7 +605,7 @@ function addCardToPage(fileLink, id) {
             </button>
         </div>
         <pre class="card-content" style="text-align: left; align-self: flex-start;">${fileLink}</pre>
-        <div class="card-time">${timeStr}</div>
+        <div class="card-time" data-timestamp="${timestamp}">${timeStr}</div>
     `;
     cardContainer.insertBefore(newCard, cardContainer.firstChild);
 }
@@ -487,6 +723,30 @@ async function deleteCard(button) {
     const cardWrapper = button.closest('.card-wrapper');
     const cardId = cardWrapper.dataset.id;
 
+    // 1. 立即执行动画（乐观更新）
+    // 防止重复点击
+    if (cardWrapper.classList.contains('fade-out')) return;
+
+    // 如果删除的是当前高亮的卡片，尝试高亮下一张
+    if (highlightedCard === cardWrapper) {
+        let target = cardWrapper.nextElementSibling;
+        if (!target || !target.classList.contains('card-wrapper')) {
+            target = cardWrapper.previousElementSibling;
+        }
+        if (target && target.classList.contains('card-wrapper')) {
+            highlightCard(target);
+        } else {
+            highlightCard(null);
+        }
+    }
+
+    cardWrapper.classList.add('fade-out');
+
+    // 2. 动画结束后移除元素
+    setTimeout(() => {
+        cardWrapper.remove();
+    }, 500);
+
     try {
         const response = await fetch('/delete_card', {
             method: 'POST',
@@ -499,14 +759,14 @@ async function deleteCard(button) {
         });
 
         const result = await response.json();
-        if (result.status === 'success') {
-            cardWrapper.remove();
-        } else {
-            alert('删除失败：' + result.message);
+        if (result.status !== 'success') {
+            throw new Error(result.message || '未知错误');
         }
     } catch (error) {
         console.error('删除出错:', error);
-        alert('删除失败，请重试');
+        // 如果删除失败，为了数据一致性，建议刷新
+        alert('删除失败，页面将刷新已恢复数据');
+        location.reload();
     }
 }
 
@@ -543,6 +803,7 @@ async function downloadCard(button) {
 
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.className = 'temp-download-link';
             a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
@@ -561,6 +822,7 @@ async function downloadCard(button) {
             // 创建下载链接
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.className = 'temp-download-link';
             a.href = url;
             a.download = fileName; // 使用原始文件名
             document.body.appendChild(a);
@@ -574,6 +836,7 @@ async function downloadCard(button) {
             const blob = new Blob([content], { type: 'text/plain' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.className = 'temp-download-link';
             a.href = url;
             a.download = 'content.txt';
             document.body.appendChild(a);
@@ -635,6 +898,8 @@ async function addCard() {
             newCard.className = 'card-wrapper';
             newCard.dataset.id = result.id;
             const timeStr = getCurrentFormattedTime();
+            const timestamp = Date.now() / 1000;
+
             newCard.innerHTML = `
                 <div class="card-header">
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
@@ -651,7 +916,7 @@ async function addCard() {
                     </button>
                 </div>
                 <pre class="card-content">${content}</pre>
-                <div class="card-time">${timeStr}</div>
+                <div class="card-time" data-timestamp="${timestamp}">${timeStr}</div>
             `;
 
             // 将新卡片插入到最前面
@@ -886,6 +1151,13 @@ function openImageInNewTab() {
     }
 }
 
+// 下载当前预览的图片
+async function downloadCurrentImage() {
+    const modalImage = document.getElementById('modal-image');
+    if (!modalImage || !modalImage.src) return;
+    await downloadImageByUrl(modalImage.src);
+}
+
 // 设置相关函数
 function showSettings() {
     const modal = document.getElementById('settings-modal');
@@ -925,8 +1197,10 @@ function toggleSimpleMode() {
     const background = document.getElementById('background');
     if (simpleMode) {
         background.style.display = 'none';
+        document.body.classList.add('simple-mode');
     } else {
         background.style.display = 'block';
+        document.body.classList.remove('simple-mode');
     }
 }
 
@@ -938,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (background) background.style.display = 'none';
         const toggle = document.getElementById('simple-mode-toggle');
         if (toggle) toggle.checked = true;
+        document.body.classList.add('simple-mode');
     }
 
     // 初始化压缩设置
@@ -962,6 +1237,44 @@ function updateCompressionQuality(value) {
     document.getElementById('quality-value').textContent = value;
 }
 
+// 通用图片下载函数
+async function downloadImageByUrl(imageUrl) {
+    if (!imageUrl) return;
+
+    try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+
+        let fileName = 'image.png';
+        try {
+            const url = new URL(imageUrl);
+            const pathname = url.pathname;
+            const lastSegment = pathname.split('/').filter(Boolean).pop();
+            if (lastSegment) {
+                fileName = lastSegment;
+            }
+        } catch (e) {
+            const parts = imageUrl.split('/');
+            if (parts.length > 0) {
+                fileName = parts[parts.length - 1];
+            }
+        }
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.className = 'temp-download-link'; // Prevent triggering click-outside logic
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('下载图片失败:', error);
+        alert('下载图片失败，请重试');
+    }
+}
+
 // 图册预览相关函数
 function showGallery() {
     const modal = document.getElementById('gallery-modal');
@@ -978,6 +1291,43 @@ function showGallery() {
             const item = document.createElement('div');
             item.className = 'gallery-item';
 
+            const overlay = document.createElement('div');
+            overlay.className = 'gallery-item-overlay';
+
+            // 通过最近的卡片找到对应的卡片 ID
+            const cardWrapper = img.closest('.card-wrapper');
+            const cardId = cardWrapper ? cardWrapper.dataset.id : null;
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'gallery-btn';
+            downloadBtn.title = '下载图片';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+            downloadBtn.onclick = (e) => {
+                e.stopPropagation();
+                downloadImageByUrl(img.src);
+            };
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'gallery-btn delete';
+            deleteBtn.title = '删除这张图所在卡片';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (!cardId) return;
+
+                const cardWrapperEl = document.querySelector(`.card-wrapper[data-id="${cardId}"]`);
+                if (!cardWrapperEl) return;
+
+                const deleteButtonInCard = cardWrapperEl.querySelector('.delete-button');
+                if (deleteButtonInCard) {
+                    await deleteCard(deleteButtonInCard);
+                    item.remove();
+                }
+            };
+
+            overlay.appendChild(downloadBtn);
+            overlay.appendChild(deleteBtn);
+
             const galleryImg = document.createElement('img');
             galleryImg.src = img.src;
             galleryImg.alt = '图册图片';
@@ -987,6 +1337,7 @@ function showGallery() {
                 showImageModal(img.src);
             };
 
+            item.appendChild(overlay);
             item.appendChild(galleryImg);
             grid.appendChild(item);
         });
@@ -1002,3 +1353,114 @@ function closeGallery() {
     document.body.style.overflow = '';
 }
 
+// Highlight Mode Logic
+let highlightedCard = null;
+
+// Toggle highlight on a card
+function highlightCard(card) {
+    if (highlightedCard && highlightedCard !== card) {
+        highlightedCard.classList.remove('highlight');
+    }
+
+    if (card && document.body.contains(card)) {
+        highlightedCard = card;
+        card.classList.add('highlight');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        highlightedCard = null;
+    }
+}
+// Enter highlight mode: highlight the first card
+function enterHighlightMode() {
+    const firstCard = document.querySelector('.card-wrapper');
+    if (firstCard) {
+        highlightCard(firstCard);
+    } // else: no cards to highlight
+}
+
+// Double click to highlight
+document.addEventListener('dblclick', function (e) {
+    const card = e.target.closest('.card-wrapper');
+    if (card) {
+        highlightCard(card);
+    }
+});
+
+// Click outside to clear highlight
+// Click outside to clear highlight
+document.addEventListener('click', function (e) {
+    // If click is not on a card or a button, and not a temporary download link, and we have a highlight
+    if (!e.target.closest('.card-wrapper') &&
+        !e.target.closest('.icon-button') &&
+        !e.target.classList.contains('temp-download-link')) {
+
+        if (highlightedCard) {
+            highlightedCard.classList.remove('highlight');
+            highlightedCard = null;
+        }
+    }
+});
+
+document.addEventListener('keydown', function (e) {
+    if (!highlightedCard) return;
+
+    // Ignore action keys if typing in input
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+    switch (e.key) {
+        case 'ArrowUp':
+        case 'ArrowLeft':
+            e.preventDefault();
+            const prev = highlightedCard.previousElementSibling;
+            // Need to loop backwards until we find a .card-wrapper
+            let p = prev;
+            while (p && !p.classList.contains('card-wrapper')) {
+                p = p.previousElementSibling;
+            }
+            if (p) highlightCard(p);
+            break;
+        case 'ArrowDown':
+        case 'ArrowRight':
+            e.preventDefault();
+            const next = highlightedCard.nextElementSibling;
+            let n = next;
+            while (n && !n.classList.contains('card-wrapper')) {
+                n = n.nextElementSibling;
+            }
+            if (n) highlightCard(n);
+            break;
+        case 'Delete':
+        case 'Backspace':
+            e.preventDefault();
+            const deleteBtn = highlightedCard.querySelector('.delete-button');
+            if (deleteBtn) deleteCard(deleteBtn);
+            break;
+        case 'd':
+        case 'D':
+            e.preventDefault();
+            const downloadBtn = highlightedCard.querySelector('.download-button');
+            if (downloadBtn) downloadCard(downloadBtn);
+            break;
+        case 'e':
+        case 'E':
+            e.preventDefault();
+            const editBtn = highlightedCard.querySelector('.icon-button[title="编辑"]');
+            if (editBtn) {
+                editCard(editBtn);
+            } else {
+                // Try finding by icon class
+                const btn = highlightedCard.querySelector('.fa-edit')?.closest('button');
+                if (btn) editCard(btn);
+            }
+            break;
+        case 'c':
+        case 'C':
+            e.preventDefault();
+            const copyBtn = highlightedCard.querySelector('.fa-copy')?.closest('button');
+            if (copyBtn) copyToClipboard(copyBtn);
+            break;
+        case 'Escape':
+            highlightCard(null);
+            break;
+    }
+});

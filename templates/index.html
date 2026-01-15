@@ -29,6 +29,10 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
+                <button onclick="enterHighlightMode()" class="icon-button" title="进入选中模式"
+                    style="padding: 0; margin-right: 15px;">
+                    <i class="fas fa-mouse-pointer"></i>
+                </button>
                 <button onclick="showGallery()" class="icon-button" title="图册预览"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-th-large"></i>
@@ -89,7 +93,7 @@
                         title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button onclick="showEditModal(this)" class="icon-button raw-button" title="编辑"
+                    <button onclick="editCard(this)" class="icon-button raw-button" title="编辑"
                         style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -105,7 +109,7 @@
 
                 </div>
                 <pre class="card-content">{{ card.content | safe }}</pre>
-                <div class="card-time">{{ card.time }}</div>
+                <div class="card-time" data-timestamp="{{ card.timestamp }}">{{ card.time }}</div>
             </div>
             {% endfor %}
         </div>
@@ -113,6 +117,23 @@
         <div id="main-loader"
             style="text-align: center; padding: 20px; display: none; color: var(--text-color); opacity: 0.6;">
             <i class="fas fa-spinner fa-spin"></i> 正在加载更多...
+        </div>
+
+        <!-- 上传进度模态窗 -->
+        <div id="upload-modal" class="modal" style="display: none;">
+            <div class="modal-content upload-modal-content">
+                <div class="modal-header">
+                    <h3>正在上传</h3>
+                </div>
+                <div class="modal-body">
+                    <div id="upload-status-text" style="margin-bottom: 12px; color: var(--text-color);">
+                        正在准备上传...
+                    </div>
+                    <div class="upload-progress-bar">
+                        <div class="upload-progress-inner" id="upload-progress-inner"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
 
@@ -131,6 +152,9 @@
                         </button>
                         <button class="nav-button next-button" onclick="showNextImage()" title="下一张">
                             <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="action-button" onclick="downloadCurrentImage()" title="下载当前图片">
+                            <i class="fas fa-download"></i>
                         </button>
                         <button class="action-button" onclick="openImageInNewTab()" title="在新标签页中打开">
                             <i class="fas fa-external-link-alt"></i>
@@ -227,6 +251,32 @@
                             <div class="tip-item">
                                 <i class="fas fa-file-upload"></i>
                                 <span>支持拖拽上传文件</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>选中模式</h4>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <i class="fas fa-mouse-pointer"></i>
+                                <span>双击卡片或点击顶部图标进入选中模式</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-arrows-alt"></i>
+                                <span>方向键 ↑ ↓ ← → 切换选中卡片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-trash"></i>
+                                <span>Delete / Backspace 删除选中卡片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-copy"></i>
+                                <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-times"></i>
+                                <span>Esc 退出选中模式</span>
                             </div>
                         </div>
                     </div>

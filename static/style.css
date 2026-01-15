@@ -28,7 +28,6 @@ body {
 }
 
 .body {
-    /* background-color: var(--bg-color); */
     padding: 20px;
     font-family: Arial, sans-serif;
     color: var(--text-color);
@@ -206,6 +205,52 @@ a {
         0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* 简洁模式：关闭动效、弱化阴影、压缩图片高度、强化操作按钮 */
+body.simple-mode .body {
+    padding-top: 12px;
+}
+
+body.simple-mode .input-container {
+    box-shadow: none;
+    transition: none;
+    /* border: 1px solid rgb(21, 255, 0); */
+    border-radius: 0;
+}
+
+body.simple-mode .input-container:focus-within {
+    box-shadow: none;
+}
+
+body.simple-mode .card-wrapper {
+    box-shadow: none;
+    transition: none;
+    border: 1px solid #ffffff;
+    border-radius: 0;
+
+}
+
+body.simple-mode .card-wrapper:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+body.simple-mode .card-content img,
+body.simple-mode .card-content video {
+    max-height: 110px;
+}
+
+body.simple-mode .card-header .icon-button {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    transform: none;
+}
+
+body.simple-mode .card-header .icon-button:hover {
+    background-color: rgba(142, 142, 142, 0.9);
+}
+
 .card-header {
     position: absolute;
     bottom: 1px;
@@ -326,6 +371,14 @@ a {
     display: inline-flex;
     flex-direction: column;
     margin: 5px 0;
+    align-items: flex-start;
+}
+
+.image-card img {
+    width: auto;
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
 }
 
 .image-info {
@@ -404,6 +457,13 @@ a:hover {
     display: inline-flex;
     flex-direction: column;
     margin: 5px 0;
+    align-items: flex-start;
+}
+
+.image-card img {
+    width: auto;
+    max-width: 100%;
+    max-height: 300px;
 }
 
 .image-info {
@@ -939,10 +999,114 @@ input:checked+.slider:before {
     object-fit: cover;
 }
 
+.gallery-item-overlay {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+}
+
+.gallery-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.gallery-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: translateY(-1px);
+}
+
+.gallery-btn.delete {
+    background: rgba(220, 53, 69, 0.8);
+}
+
+.gallery-btn.delete:hover {
+    background: rgba(220, 53, 69, 1);
+}
+
+/* 上传进度模态窗样式 */
+.upload-modal-content {
+    max-width: 420px;
+}
+
+.upload-progress-bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.upload-progress-inner {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #4caf50, #81c784);
+    transition: width 0.2s ease;
+}
+
 @media (max-width: 600px) {
     .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 8px;
         padding: 10px;
     }
+}
+
+/* Card deletion animation */
+.fade-out {
+    animation: fadeOut 0.5s ease forwards;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+        max-height: 1000px;
+        margin-bottom: 0;
+        border-width: 1px;
+    }
+
+    40% {
+        opacity: 0;
+        transform: scale(0.95);
+        margin-bottom: 0;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+        height: 0;
+        max-height: 0;
+        margin-bottom: -16px;
+        /* Offset the flex gap */
+        padding: 0;
+        border-width: 0;
+    }
+}
+
+/* Highlight mode styles */
+.card-wrapper.highlight {
+    border: 2px solid var(--link-color) !important;
+    box-shadow: 0 0 15px rgba(var(--link-color-rgb), 0.3) !important;
+    transform: scale(1.02);
+    z-index: 100;
+}
+
+[data-theme="dark"] .card-wrapper.highlight {
+    box-shadow: 0 0 15px rgba(88, 166, 255, 0.3) !important;
 }

@@ -34,3 +34,10 @@ docker run -d -p 5000:5000 registry.cn-hangzhou.aliyuncs.com/aaas-images/lan-cli
 python app.py
 ```
 
+## 更新log
+- 图册预览给每个图增加下载按钮、删除按钮
+- “设置 → 简洁模式”开关之间切换，对比体验：普通模式保留动效和大图展示，简洁模式更平、滚动更快、操作按钮更突出。
+- 上传进度条， UPLOAD_PROGRESS_MIN_SIZE 以上则显示进度提示
+- pwd.txt 增加密码设置
+- 删除动画
+- 双击卡片就开始进入高亮卡片模式，上下左右控制选择，del/backspace 可以删除，（删除后自动选择下一个卡） d下载，e编辑，c复制（仅仅在高亮卡片时候有效果）
