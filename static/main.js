@@ -2,6 +2,32 @@
 document.documentElement.setAttribute('data-theme', 'dark');
 document.getElementById('input-text').focus();
 
+document.getElementById('input-text').focus();
+
+// 全屏输入切换
+function toggleFullscreenInput() {
+    const container = document.querySelector('.input-container');
+    const btn = document.getElementById('fullscreen-btn');
+    const icon = btn.querySelector('i');
+
+    container.classList.toggle('fullscreen');
+
+    if (container.classList.contains('fullscreen')) {
+        icon.classList.remove('fa-expand');
+        icon.classList.add('fa-compress');
+        btn.title = "退出全屏";
+        document.body.style.overflow = 'hidden'; // 防止背景滚动
+
+        // Ensure textarea has focus
+        document.getElementById('input-text').focus();
+    } else {
+        icon.classList.remove('fa-compress');
+        icon.classList.add('fa-expand');
+        btn.title = "全屏编辑";
+        document.body.style.overflow = '';
+    }
+}
+
 // 验证密码
 async function verifyPassword(inputPwd) {
     try {
@@ -143,6 +169,17 @@ window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
     updateAllTimes();
+
+    // 监听全屏快捷键 (Esc 退出全屏)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const container = document.querySelector('.input-container');
+            // 只有在输入框全屏时才响应Esc退出
+            if (container && container.classList.contains('fullscreen')) {
+                toggleFullscreenInput();
+            }
+        }
+    });
 
     // 首屏内容中过滤 3 天前的卡片（除非已解锁）
     if (!oldContentUnlocked) {

@@ -21,15 +21,10 @@
 bash
 ## Docker Hub镜像
 ```
-docker run -d -p 5000:5000 kasusa/lan-clipboard-app:latest
+docker run -d -p 5000:5000 kasusa/lan-clip:latest
 ```
 
-## 阿里云镜像（国内加速）
-```
-docker run -d -p 5000:5000 registry.cn-hangzhou.aliyuncs.com/aaas-images/lan-clipboard-app:latest
-```
-
-3. 源码运行（开发 / 调试）
+2. 源码运行（开发 / 调试）
 ```
 python app.py
 ```

@@ -2,7 +2,7 @@
 $IMAGE_NAME = "kasusa/lan-clip"
 $TAG = "latest"
 $FULL_IMAGE_NAME = "${IMAGE_NAME}:${TAG}"
-$ZIP_NAME = "lan-clip-deploy.zip"
+$TAR_NAME = "lan-clip-deploy.tar"
 
 Write-Host "=========================================="
 Write-Host "   Lan-Clip Build & Deploy Script"
@@ -43,48 +43,26 @@ if ($response -eq 'y') {
 
 Write-Host ""
 
-# Step 3: Local Zip
-$response = Read-Host "Step 3: Create Local Deploy Zip ($ZIP_NAME)? [y/n]"
+# Step 3: Local Docker Tar
+$response = Read-Host "Step 3: Save Docker Image to Tar ($TAR_NAME)? [y/n]"
 if ($response -eq 'y') {
-    Write-Host "Creating Zip archive..."
+    Write-Host "Saving Docker Image to Tar..."
+
+    # Remove old tar if exists
+    if (Test-Path $TAR_NAME) {
+        Remove-Item $TAR_NAME
+        Write-Host "Removed old tar file."
+    }
+
+    docker save -o $TAR_NAME $FULL_IMAGE_NAME
     
-    # Remove old zip if exists
-    if (Test-Path $ZIP_NAME) {
-        Remove-Item $ZIP_NAME
-        Write-Host "Removed old zip file."
-    }
-
-    # Define files/folders to include
-    # We explicitly list them to avoid including .git, venv, etc.
-    $filesToZip = @(
-        "app.py",
-        "auth_service.py",
-        "requirements.txt",
-        "pwd.txt",
-        "Dockerfile",
-        "readme.md",
-        "static",
-        "templates"
-    )
-
-    # Validate existence
-    $validFiles = @()
-    foreach ($file in $filesToZip) {
-        if (Test-Path $file) {
-            $validFiles += $file
-        } else {
-            Write-Host "Warning: File '$file' not found, skipping." -ForegroundColor Yellow
-        }
-    }
-
-    if ($validFiles.Count -gt 0) {
-        Compress-Archive -Path $validFiles -DestinationPath $ZIP_NAME
-        Write-Host "Zip archive created successfully: $ZIP_NAME" -ForegroundColor Green
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Docker image saved successfully: $TAR_NAME" -ForegroundColor Green
     } else {
-        Write-Host "No valid files found to zip." -ForegroundColor Red
+        Write-Host "Failed to save Docker image." -ForegroundColor Red
     }
 } else {
-    Write-Host "Skipping Zip creation."
+    Write-Host "Skipping Docker save."
 }
 
 Write-Host ""

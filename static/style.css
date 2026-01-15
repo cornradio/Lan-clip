@@ -1110,3 +1110,48 @@ input:checked+.slider:before {
 [data-theme="dark"] .card-wrapper.highlight {
     box-shadow: 0 0 15px rgba(88, 166, 255, 0.3) !important;
 }
+/* 全屏输入模式 */
+.input-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999; /* Ensure it's on top of everything including modals if needed */
+    border-radius: 0;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    background: var(--bg-color); /* Use theme background */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure the textarea takes remaining height */
+.input-container.fullscreen textarea {
+    flex: 1;
+    height: 100%;
+    resize: none;
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+/* 隐藏全屏模式下textarea的滚动条但允许滚�?*/
+.input-container.fullscreen textarea::-webkit-scrollbar {
+    display: none;
+}
+
+.input-container.fullscreen textarea {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* In fullscreen, make the button group stick to bottom if desired, or just normal flow */
+.input-container.fullscreen .button-group {
+    margin-top: auto; /* Push to bottom if container is flex column */
+    background: transparent;
+}
