@@ -169,6 +169,7 @@ window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
     updateAllTimes();
+    initGridMode();
 
     // 监听全屏快捷键 (Esc 退出全屏)
     document.addEventListener('keydown', function (e) {
@@ -1394,6 +1395,7 @@ function closeGallery() {
 let highlightedCard = null;
 
 // Toggle highlight on a card
+// Toggle highlight on a card
 function highlightCard(card) {
     if (highlightedCard && highlightedCard !== card) {
         highlightedCard.classList.remove('highlight');
@@ -1403,8 +1405,10 @@ function highlightCard(card) {
         highlightedCard = card;
         card.classList.add('highlight');
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        document.body.classList.add('highlight-mode-active');
     } else {
         highlightedCard = null;
+        document.body.classList.remove('highlight-mode-active');
     }
 }
 // Enter highlight mode: highlight the first card
@@ -1438,6 +1442,7 @@ document.addEventListener('click', function (e) {
     }
 });
 
+
 document.addEventListener('keydown', function (e) {
     if (!highlightedCard) return;
 
@@ -1446,25 +1451,20 @@ document.addEventListener('keydown', function (e) {
 
     switch (e.key) {
         case 'ArrowUp':
+            e.preventDefault();
+            navigateCard('up');
+            break;
         case 'ArrowLeft':
             e.preventDefault();
-            const prev = highlightedCard.previousElementSibling;
-            // Need to loop backwards until we find a .card-wrapper
-            let p = prev;
-            while (p && !p.classList.contains('card-wrapper')) {
-                p = p.previousElementSibling;
-            }
-            if (p) highlightCard(p);
+            navigateCard('left');
             break;
         case 'ArrowDown':
+            e.preventDefault();
+            navigateCard('down');
+            break;
         case 'ArrowRight':
             e.preventDefault();
-            const next = highlightedCard.nextElementSibling;
-            let n = next;
-            while (n && !n.classList.contains('card-wrapper')) {
-                n = n.nextElementSibling;
-            }
-            if (n) highlightCard(n);
+            navigateCard('right');
             break;
         case 'Delete':
         case 'Backspace':
@@ -1478,26 +1478,171 @@ document.addEventListener('keydown', function (e) {
             const downloadBtn = highlightedCard.querySelector('.download-button');
             if (downloadBtn) downloadCard(downloadBtn);
             break;
-        case 'e':
-        case 'E':
-            e.preventDefault();
-            const editBtn = highlightedCard.querySelector('.icon-button[title="编辑"]');
-            if (editBtn) {
-                editCard(editBtn);
-            } else {
-                // Try finding by icon class
-                const btn = highlightedCard.querySelector('.fa-edit')?.closest('button');
-                if (btn) editCard(btn);
-            }
-            break;
         case 'c':
         case 'C':
             e.preventDefault();
-            const copyBtn = highlightedCard.querySelector('.fa-copy')?.closest('button');
+            const copyBtn = highlightedCard.querySelector('.copy-button') || highlightedCard.querySelector('button[onclick*="copyToClipboard"]');
             if (copyBtn) copyToClipboard(copyBtn);
             break;
+        case 'e':
+        case 'E':
+            e.preventDefault();
+            const editBtn = highlightedCard.querySelector('button[onclick*="editCard"]');
+            if (editBtn) editCard(editBtn);
+            break;
         case 'Escape':
+            e.preventDefault();
             highlightCard(null);
             break;
     }
 });
+
+function navigateCard(direction) {
+    if (!highlightedCard) return;
+
+    const container = document.getElementById('card-container');
+    const isGrid = container && container.classList.contains('grid-mode');
+
+    // Helper to find linear sibling
+    const getSibling = (start, dir) => {
+        let target = dir === 'prev' ? start.previousElementSibling : start.nextElementSibling;
+        while (target && !target.classList.contains('card-wrapper')) {
+            target = dir === 'prev' ? target.previousElementSibling : target.nextElementSibling;
+        }
+        return target;
+    };
+
+    if (!isGrid) {
+        // List Mode: Up/Left -> Prev, Down/Right -> Next
+        if (direction === 'up' || direction === 'left') {
+            const target = getSibling(highlightedCard, 'prev');
+            if (target) highlightCard(target);
+        } else {
+            const target = getSibling(highlightedCard, 'next');
+            if (target) highlightCard(target);
+        }
+        return;
+    }
+
+    // Grid Mode Logic
+    if (direction === 'left') {
+        const target = getSibling(highlightedCard, 'prev');
+        if (target) highlightCard(target);
+    } else if (direction === 'right') {
+        const target = getSibling(highlightedCard, 'next');
+        if (target) highlightCard(target);
+    } else if (direction === 'up' || direction === 'down') {
+        findGridVisibleNeighbor(highlightedCard, direction);
+    }
+}
+
+function findGridVisibleNeighbor(current, direction) {
+    const cards = Array.from(document.querySelectorAll('.card-wrapper'));
+    const currentRect = current.getBoundingClientRect();
+    const currentCenter = currentRect.left + currentRect.width / 2;
+
+    // Filter candidates
+    const candidates = cards.filter(c => {
+        if (c === current) return false;
+        const r = c.getBoundingClientRect();
+
+        // Use a small buffer to handle slight misalignments
+        // Up: strictly above current top
+        // Down: strictly below current top (or bottom?)
+
+        if (direction === 'up') {
+            return r.bottom <= currentRect.top + 5;
+        } else {
+            return r.top >= currentRect.bottom - 5;
+        }
+    });
+
+    if (candidates.length === 0) return;
+
+    let bestCandidate = null;
+    let minDiffX = Infinity;
+    let closestY = Infinity; // We want closest in Y dimension
+
+    candidates.forEach(c => {
+        const r = c.getBoundingClientRect();
+        const center = r.left + r.width / 2;
+        const diffX = Math.abs(center - currentCenter);
+
+        // For UP, we want the LARGEST bottom (closest to current top)
+        // For DOWN, we want the SMALLEST top (closest to current bottom)
+        const diffY = direction === 'up'
+            ? Math.abs(currentRect.top - r.bottom)
+            : Math.abs(r.top - currentRect.bottom);
+
+        // Logic: Find candidates in the "closest row", then find closest X in that row.
+        // Or simpler: strictly prioritize minimal DiffX (same column), then minimal DiffY.
+
+        // Since it's a grid, items are usually aligned in columns.
+        // We look for same column (DiffX small).
+        if (diffX < 20) { // Same column threshold
+            if (diffY < closestY) {
+                closestY = diffY;
+                bestCandidate = c;
+                minDiffX = diffX; // Lock into this column
+            }
+        } else if (closestY === Infinity) {
+            // If we haven't found any in same column yet, keep track of closest global neighbor just in case
+            // But actually, arrow keys should generally stick to columns. 
+            // If no item in same column, maybe do nothing or jump to closest?
+            // Let's stick to strict column navigation for "Grid" feel.
+        }
+    });
+
+    // If no direct column neighbor, try to find physically closest one?
+    if (!bestCandidate && candidates.length > 0) {
+        // Fallback: simple closest distance
+        let minDist = Infinity;
+        candidates.forEach(c => {
+            const r = c.getBoundingClientRect();
+            const center = r.left + r.width / 2;
+            const diffX = Math.abs(center - currentCenter);
+            const dy = direction === 'up' ? currentRect.top - r.bottom : r.top - currentRect.bottom;
+            const dist = Math.sqrt(diffX * diffX + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                bestCandidate = c;
+            }
+        });
+    }
+
+    if (bestCandidate) highlightCard(bestCandidate);
+}
+
+
+// Grid Mode Toggle Logic
+function toggleGridMode() {
+    const container = document.getElementById('card-container');
+    if (!container) return;
+    container.classList.toggle('grid-mode');
+
+    const isGrid = container.classList.contains('grid-mode');
+    localStorage.setItem('gridMode', isGrid);
+    updateGridModeIcon(isGrid);
+}
+
+function updateGridModeIcon(isGrid) {
+    const btn = document.getElementById('grid-mode-btn');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (isGrid) {
+        icon.className = 'fas fa-list';
+        btn.title = "切换列表视图";
+    } else {
+        icon.className = 'fas fa-border-all';
+        btn.title = "切换网格视图";
+    }
+}
+
+function initGridMode() {
+    const savedMode = localStorage.getItem('gridMode') === 'true';
+    if (savedMode) {
+        const container = document.getElementById('card-container');
+        if (container) container.classList.add('grid-mode');
+    }
+    updateGridModeIcon(savedMode);
+}

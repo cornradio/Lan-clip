@@ -29,13 +29,18 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
+                <!-- todo，这个模式还在优化中 -->
+                <!-- <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button" title="切换视图"
+                    style="padding: 0; margin-right: 15px;">
+                    <i class="fas fa-border-all"></i>
+                </button> -->
                 <button onclick="enterHighlightMode()" class="icon-button" title="进入选中模式"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-mouse-pointer"></i>
                 </button>
                 <button onclick="showGallery()" class="icon-button" title="图册预览"
                     style="padding: 0; margin-right: 15px;">
-                    <i class="fas fa-th-large"></i>
+                    <i class="fas fa-images"></i>
                 </button>
                 <button onclick="showSettings()" class="icon-button" title="设置" style="padding: 0;">
                     <i class="fas fa-cog"></i>
@@ -80,7 +85,8 @@
                         <input type="file" id="file-input2" style="display: none;" accept="*" multiple
                             onchange="uploadFiles(this.files); this.value='';">
                     </button>
-                    <button onclick="toggleFullscreenInput()" id="fullscreen-btn" class="icon-button" title="全屏编辑" style="margin-left: auto;">
+                    <button onclick="toggleFullscreenInput()" id="fullscreen-btn" class="icon-button" title="全屏编辑"
+                        style="margin-left: auto;">
                         <i class="fas fa-expand"></i>
                     </button>
                 </div>
