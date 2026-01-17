@@ -72,7 +72,7 @@
                         <i class="fas fa-paper-plane"></i>
                         <span style="margin-left: 5px;">发送</span>
                     </button>
-                    <button onclick="window.location.href='/'" class="icon-button" title="刷新">
+                    <button onclick="refreshCards()" class="icon-button" title="刷新">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                     <button onclick="document.getElementById('file-input').click()" class="icon-button" title="上传图片">
@@ -95,9 +95,14 @@
 
         <!-- 卡片展示区域 -->
         <div class="card" id="card-container">
-            {% for card in (cards|reverse|list)[:20] %}
-            <div class="card-wrapper" data-id="{{ card.id }}">
+            {% for card in cards[:20] %}
+            <div class="card-wrapper {{ 'pinned' if card.pinned else '' }}" data-id="{{ card.id }}">
                 <div class="card-header">
+                    <button onclick="togglePin(this)" class="icon-button raw-button pin2-button"
+                        title="{{ '取消置顶' if card.pinned else '置顶' }}" style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fas fa-thumbtack"
+                            style="{{ 'color: #ffd700; transform: rotate(45deg);' if card.pinned else '' }}"></i>
+                    </button>
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
                         title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-copy"></i>

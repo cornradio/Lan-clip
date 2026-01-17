@@ -10,6 +10,9 @@ import argparse
 import argparse
 import time
 import auth_service
+import json
+
+PINNED_FILE = 'pinned.json'
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -49,10 +52,29 @@ def ensure_cards_dir():
     if not os.path.exists(CARDS_DIR):
         os.makedirs(CARDS_DIR)
 
+def load_pinned():
+    try:
+        if os.path.exists(PINNED_FILE):
+            with open(PINNED_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+    except Exception as e:
+        print(f"加载置顶文件出错: {str(e)}")
+    return []
+
+def save_pinned(pinned_list):
+    try:
+        with open(PINNED_FILE, 'w', encoding='utf-8') as f:
+            json.dump(pinned_list, f)
+    except Exception as e:
+        print(f"保存置顶文件出错: {str(e)}")
+
 def load_cards():
     global cards_cache
     try:
         ensure_cards_dir()
+        pinned_ids = load_pinned()
         cards = []
         card_files = glob.glob(os.path.join(CARDS_DIR, '*.txt'))
         # 按照数字大小排序
@@ -66,10 +88,20 @@ def load_cards():
                     'id': card_id,
                     'content': f.read().strip(),
                     'time': time_str,
-                    'timestamp': mtime
+                    'timestamp': mtime,
+                    'pinned': card_id in pinned_ids
                 })
-        cards_cache = cards
-        return cards
+        
+        # 排序：置顶的在前，其余按 ID 倒序（或者按时间，这里原逻辑是 ID 排序后再倒序）
+        pinned_cards = [c for c in cards if c['pinned']]
+        unpinned_cards = [c for c in cards if not c['pinned']]
+        
+        # 保持原有的倒序逻辑（最新的在前面）
+        pinned_cards.sort(key=lambda x: int(x['id']), reverse=True)
+        unpinned_cards.sort(key=lambda x: int(x['id']), reverse=True)
+        
+        cards_cache = pinned_cards + unpinned_cards
+        return cards_cache
     except Exception as e:
         print(f"加载卡片出错: {str(e)}")
         return []
@@ -97,7 +129,7 @@ def save_card(content):
             'time': time_str,
             'timestamp': mtime
         }
-        cards_cache.append(new_card)
+        cards_cache = load_cards()
         return next_num
     except Exception as e:
         print(f"保存卡片出错: {str(e)}")
@@ -106,14 +138,19 @@ def save_card(content):
 @app.route('/', methods=['GET', 'POST'])
 def home():
     global cards_cache
-    if request.method == 'GET' and not cards_cache:  # 只在首次加载或缓存为空时从文件加载
+    if not cards_cache:  # 始终尝试加载，或者根据需要调整
         cards_cache = load_cards()
+    else:
+        # 如果缓存有内容，确保置顶状态也是最新的（或者在操作时同步更新缓存）
+        pass
     
     if request.method == 'POST':
         new_text = request.form.get('text', '')
         if new_text:
             save_card(new_text)
             log_action("HOME_POST", f"添加文本: {new_text[:50]}...")
+            # 重新加载以更新缓存
+            load_cards()
     
     return render_template('index.html', cards=cards_cache, port=5000)
 
@@ -128,8 +165,17 @@ def clear_history():
     global cards_cache
     try:
         if os.path.exists(CARDS_DIR):
-            shutil.rmtree(CARDS_DIR)
-        os.makedirs(CARDS_DIR)
+            for file in os.listdir(CARDS_DIR):
+                file_path = os.path.join(CARDS_DIR, file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"删除文件 {file_path} 失败: {e}")
+        else:
+            os.makedirs(CARDS_DIR)
         cards_cache = []  # 清空缓存
         
         # 清空图片文件夹
@@ -182,15 +228,18 @@ def delete_card():
                         except: pass
                 
                 os.remove(file_path)
+                
+                # 从置顶列表中移除
+                pinned_ids = load_pinned()
+                if card_id in pinned_ids:
+                    pinned_ids.remove(card_id)
+                    save_pinned(pinned_ids)
+                
                 log_action("DELETE_CARD", f"ID: {card_id}")
                 cards_cache = load_cards()
                 return jsonify({'status': 'success'})
 
         return jsonify({'status': 'error', 'message': '未找到对应的卡片 ID'})
-            
-    except Exception as e:
-        print(f"删除卡片出错: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)})
             
     except Exception as e:
         print(f"删除卡片出错: {str(e)}")
@@ -265,6 +314,7 @@ def add_card():
         if content:
             new_id = save_card(content)
             if new_id:
+                load_cards() # Ensure sorting is updated
                 log_action("API_ADD_CARD", f"ID: {new_id}, 内容: {content[:30]}...")
                 return jsonify({'status': 'success', 'content': content, 'id': str(new_id)})
         return jsonify({'status': 'error', 'message': '内容为空'}), 400
@@ -274,14 +324,15 @@ def add_card():
 @app.route('/api/cards', methods=['GET'])
 def get_cards_api():
     global cards_cache
+    # 始终确保缓存是最新的，或者根据业务逻辑触发加载
     if not cards_cache:
         cards_cache = load_cards()
     
     page = int(request.args.get('page', 1))
     size = int(request.args.get('size', 20))
     
-    # 倒序排列
-    all_cards = cards_cache[::-1]
+    # cards_cache 已经是排序好的了（置顶在前，其余倒序）
+    all_cards = cards_cache
     
     start = (page - 1) * size
     end = start + size
@@ -290,6 +341,40 @@ def get_cards_api():
         'cards': all_cards[start:end],
         'has_more': end < len(all_cards)
     })
+
+@app.route('/api/pin_card', methods=['POST'])
+def pin_card():
+    try:
+        card_id = request.json.get('id')
+        if not card_id:
+            return jsonify({'status': 'error', 'message': 'Missing card ID'}), 400
+        
+        pinned_ids = load_pinned()
+        if card_id not in pinned_ids:
+            pinned_ids.append(card_id)
+            save_pinned(pinned_ids)
+            log_action("PIN_CARD", f"ID: {card_id}")
+            load_cards() # 更新缓存
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/unpin_card', methods=['POST'])
+def unpin_card():
+    try:
+        card_id = request.json.get('id')
+        if not card_id:
+            return jsonify({'status': 'error', 'message': 'Missing card ID'}), 400
+        
+        pinned_ids = load_pinned()
+        if card_id in pinned_ids:
+            pinned_ids.remove(card_id)
+            save_pinned(pinned_ids)
+            log_action("UNPIN_CARD", f"ID: {card_id}")
+            load_cards() # 更新缓存
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     if sys.platform == 'darwin':  # macOS

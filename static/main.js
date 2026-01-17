@@ -79,9 +79,13 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 
 // 清空历史记录
 async function clearHistory() {
+    const toggle = document.getElementById('clear-history-toggle');
     // 输入密码
     const pwd = prompt('请输入密码以确认清空历史记录:');
-    if (!pwd) return;
+    if (!pwd) {
+        if (toggle) toggle.checked = false;
+        return;
+    }
 
     if (await verifyPassword(pwd)) {
         try {
@@ -93,7 +97,9 @@ async function clearHistory() {
                 body: JSON.stringify({ password: pwd })
             });
             if (response.ok) {
-                document.querySelector('.card').innerHTML = '';
+                const container = document.getElementById('card-container');
+                if (container) container.innerHTML = '';
+                alert('清空成功');
             } else {
                 alert('清空失败');
             }
@@ -104,6 +110,7 @@ async function clearHistory() {
     } else {
         alert('密码错误，操作已取消。');
     }
+    if (toggle) toggle.checked = false;
 }
 function saveTextToLocalStorage() {
     const textarea = document.getElementById('input-text');
@@ -219,6 +226,76 @@ window.onload = function () {
     });
 };
 
+// Helper to generate card HTML
+function getCardHtml(card) {
+    const displayTime = card.timestamp ? formatTimestamp(card.timestamp) : card.time;
+    const isPinned = !!card.pinned;
+    return `
+        <div class="card-wrapper ${isPinned ? 'pinned' : ''}" data-id="${card.id}">
+            <div class="card-header">
+                <button onclick="togglePin(this)" class="icon-button raw-button pin2-button" 
+                    title="${isPinned ? '取消置顶' : '置顶'}" style="padding: 4px 8px; font-size: 12px;">
+                    <i class="fas fa-thumbtack" style="${isPinned ? 'color: #ffd700; transform: rotate(45deg);' : ''}"></i>
+                </button>
+                <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
+                    title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button onclick="editCard(this)" class="icon-button raw-button" title="编辑"
+                    style="padding: 4px 8px; font-size: 12px;">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
+                    style="padding: 4px 8px; font-size: 12px;" title="下载">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button onclick="deleteCard(this)" class="icon-button raw-button delete-button"
+                    style="padding: 4px 8px; font-size: 12px;" title="删除">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <pre class="card-content">${card.content}</pre>
+            <div class="card-time" data-timestamp="${card.timestamp || ''}">${displayTime}</div>
+        </div>`;
+}
+
+async function refreshCards() {
+    if (isLoading) return;
+    isLoading = true;
+
+    // Spin animation to indicate work
+    const refreshBtn = event?.currentTarget || document.querySelector('button[title="刷新"]');
+    const icon = refreshBtn?.querySelector('i');
+    if (icon) icon.classList.add('fa-spin');
+
+    try {
+        const response = await fetch(`/api/cards?page=1&size=${PAGE_SIZE}`);
+        const data = await response.json();
+
+        const container = document.getElementById('card-container');
+        if (container) {
+            container.innerHTML = '';
+            data.cards.forEach(card => {
+                if (!oldContentUnlocked && isCardOlderThanDays(card.time, OLD_DAYS_LIMIT)) {
+                    hasOlderCards = true;
+                    return;
+                }
+                container.insertAdjacentHTML('beforeend', getCardHtml(card));
+            });
+
+            currentPage = 1;
+            hasMore = data.has_more;
+        }
+    } catch (error) {
+        console.error('刷新卡片失败:', error);
+    } finally {
+        isLoading = false;
+        if (icon) {
+            setTimeout(() => icon.classList.remove('fa-spin'), 500);
+        }
+    }
+}
+
 async function loadMoreCards() {
     if (isLoading) return;
     isLoading = true;
@@ -238,33 +315,7 @@ async function loadMoreCards() {
                 hasMore = false;
                 return;
             }
-
-            const displayTime = card.timestamp ? formatTimestamp(card.timestamp) : card.time;
-
-            const cardHtml = `
-                <div class="card-wrapper" data-id="${card.id}">
-                    <div class="card-header">
-                        <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
-                            title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button onclick="editCard(this)" class="icon-button raw-button" title="编辑"
-                            style="padding: 4px 8px; font-size: 12px;">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
-                            style="padding: 4px 8px; font-size: 12px;" title="下载">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        <button onclick="deleteCard(this)" class="icon-button raw-button delete-button"
-                            style="padding: 4px 8px; font-size: 12px;" title="删除">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <pre class="card-content">${card.content}</pre>
-                    <div class="card-time" data-timestamp="${card.timestamp || ''}">${displayTime}</div>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', cardHtml);
+            container.insertAdjacentHTML('beforeend', getCardHtml(card));
         });
 
         currentPage++;
@@ -618,34 +669,26 @@ function generateFileLink(file, fileUrl, fileIcon, fileSize) {
 
 // 在页面中添加新卡片
 function addCardToPage(fileLink, id) {
-    const cardContainer = document.querySelector('.card');
-    const newCard = document.createElement('div');
-    newCard.className = 'card-wrapper';
-    newCard.dataset.id = id;
-    const timeStr = getCurrentFormattedTime();
+    const cardContainer = document.getElementById('card-container');
+    if (!cardContainer) return;
 
-    // Add timestamp for new cards too
-    const timestamp = Date.now() / 1000;
+    const card = {
+        id: id,
+        content: fileLink,
+        pinned: false,
+        timestamp: Date.now() / 1000,
+        time: getCurrentFormattedTime()
+    };
 
-    newCard.innerHTML = `
-        <div class="card-header">
-            <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button" title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
-                <i class="fas fa-copy"></i>
-            </button>
-            <button onclick="editCard(this)" class="icon-button raw-button" title="编辑" style="padding: 4px 8px; font-size: 12px;">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button onclick="downloadCard(this)" class="icon-button raw-button download-button" style="padding: 4px 8px; font-size: 12px;" title="下载">
-                <i class="fas fa-download"></i>
-            </button>
-            <button onclick="deleteCard(this)" class="icon-button raw-button delete-button" style="padding: 4px 8px; font-size: 12px;" title="删除">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        <pre class="card-content" style="text-align: left; align-self: flex-start;">${fileLink}</pre>
-        <div class="card-time" data-timestamp="${timestamp}">${timeStr}</div>
-    `;
-    cardContainer.insertBefore(newCard, cardContainer.firstChild);
+    const html = getCardHtml(card);
+
+    // 插入逻辑：插入到所有置顶卡片之后，或者容器的最前面
+    const lastPinned = Array.from(cardContainer.querySelectorAll('.card-wrapper.pinned')).pop();
+    if (lastPinned) {
+        lastPinned.insertAdjacentHTML('afterend', html);
+    } else {
+        cardContainer.insertAdjacentHTML('afterbegin', html);
+    }
 }
 
 function getCurrentFormattedTime() {
@@ -805,6 +848,75 @@ async function deleteCard(button) {
         // 如果删除失败，为了数据一致性，建议刷新
         alert('删除失败，页面将刷新已恢复数据');
         location.reload();
+    }
+}
+
+async function togglePin(button) {
+    const cardWrapper = button.closest('.card-wrapper');
+    if (!cardWrapper) return;
+    const cardId = cardWrapper.dataset.id;
+    const isPinned = cardWrapper.classList.contains('pinned');
+    const endpoint = isPinned ? '/api/unpin_card' : '/api/pin_card';
+    const icon = button.querySelector('i');
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: cardId })
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            const container = document.getElementById('card-container');
+            if (isPinned) {
+                // 取消置顶
+                cardWrapper.classList.remove('pinned');
+                icon.style.color = '';
+                icon.style.transform = '';
+                button.title = '置顶';
+
+                // 移动到应有的位置：按 ID 倒序排列。
+                // 找到第一个非置顶且 ID 比它小的卡片，插在它前面。
+                const wrappers = Array.from(container.querySelectorAll('.card-wrapper'));
+                let success = false;
+                for (let other of wrappers) {
+                    if (other === cardWrapper) continue;
+                    if (!other.classList.contains('pinned') && parseInt(other.dataset.id) < parseInt(cardId)) {
+                        container.insertBefore(cardWrapper, other);
+                        success = true;
+                        break;
+                    }
+                }
+                if (!success) {
+                    // 如果没找到比它小的，插到最后
+                    container.appendChild(cardWrapper);
+                }
+            } else {
+                // 置顶
+                cardWrapper.classList.add('pinned');
+                icon.style.color = '#ffd700';
+                icon.style.transform = 'rotate(45deg)';
+                button.title = '取消置顶';
+
+                // 移动到顶部（第一个非置顶卡片之前）
+                const firstUnpinned = container.querySelector('.card-wrapper:not(.pinned)');
+                if (firstUnpinned) {
+                    container.insertBefore(cardWrapper, firstUnpinned);
+                } else {
+                    container.appendChild(cardWrapper);
+                }
+            }
+
+            // 滚动到该卡片位置
+            cardWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        } else {
+            alert('操作失败: ' + (data.message || ''));
+        }
+    } catch (e) {
+        console.error(e);
+        alert('请求出错');
     }
 }
 
