@@ -1094,22 +1094,78 @@ const imageUrls = [
     // 添加更多图片链接
 ];
 
-// 定义一个函数来获取随机背景图片
+// 定义一个函数来获取随机背景图片 (基于日期和手动偏移的“每日一图”)
 async function getRandomBackgroundImage() {
-    // 从列表中随机选择一个图片链接
-    const randomIndex = Math.floor(Math.random() * imageUrls.length);
-    const randomImageUrl = imageUrls[randomIndex];
+    const isCustom = localStorage.getItem('hasCustomBG') === 'true';
+    if (!isCustom) {
+        const now = new Date();
+        const dateStr = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+        let dateSeed = 0;
+        for (let i = 0; i < dateStr.length; i++) dateSeed += dateStr.charCodeAt(i);
+        const manualOffset = parseInt(localStorage.getItem('bgManualOffset')) || 0;
+        const index = Math.abs(dateSeed + manualOffset) % imageUrls.length;
+        return imageUrls[index];
+    }
 
-    // 返回图片的 URL
-    return randomImageUrl;
+    try {
+        const db = await openBGDB();
+
+        // 计算当前环境的标识符 (日期 + 偏移量)
+        const now = new Date();
+        const dateKey = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+        const manualOffset = parseInt(localStorage.getItem('bgManualOffset')) || 0;
+        const currentEnvKey = `${dateKey}_${manualOffset}`;
+
+        // 1. 尝试从强缓存中读取
+        const cached = await getActiveCache(db);
+        if (cached && cached.envKey === currentEnvKey) {
+            console.log('从快捷缓存加载背景');
+            return URL.createObjectURL(cached.data);
+        }
+
+        // 2. 缓存失效或不存在，重新计算
+        const totalCount = await getBGCount(db);
+        if (totalCount === 0) return imageUrls[0];
+
+        let dateSeed = 0;
+        for (let i = 0; i < dateKey.length; i++) dateSeed += dateKey.charCodeAt(i);
+        const index = Math.abs(dateSeed + manualOffset) % totalCount;
+
+        // 使用 O(1) 的 ID 查询
+        const bgRecord = await getBGById(db, index);
+        if (bgRecord && bgRecord.data) {
+            // 更新强缓存，以便下次“瞬发”加载
+            await updateActiveCache(db, currentEnvKey, bgRecord.data);
+            return URL.createObjectURL(bgRecord.data);
+        }
+    } catch (e) {
+        console.error('加载自定义背景失败:', e);
+    }
+
+    return imageUrls[0];
 }
 
 // 获取背景元素
 const backgroundElement = document.getElementById('background');
 
+let currentBGObjectURL = null;
+
 // 定义一个函数来设置背景图片
 function setBackgroundImage(url) {
+    // 释放旧的 ObjectURL 避免内存泄漏
+    if (currentBGObjectURL && currentBGObjectURL.startsWith('blob:')) {
+        URL.revokeObjectURL(currentBGObjectURL);
+    }
+    currentBGObjectURL = url;
+
     backgroundElement.style.backgroundImage = `url(${url})`;
+    // 同步更新设置页面的预览图
+    const previewImg = document.getElementById('bg-preview-img');
+    const previewContainer = document.getElementById('bg-preview-container');
+    if (previewImg && previewContainer) {
+        previewImg.src = url;
+        previewContainer.style.display = 'block';
+    }
 }
 // 调用函数并设置背景图片
 getRandomBackgroundImage().then(url => {
@@ -1318,6 +1374,9 @@ function showSettings() {
     const simpleModeToggle = document.getElementById('simple-mode-toggle');
     simpleModeToggle.checked = localStorage.getItem('simpleMode') === 'true';
 
+    // 更新自定义背景信息
+    updateBGFolderStatus();
+
     // 设置自动压缩开关状态
     const autoCompressToggle = document.getElementById('auto-compress-toggle');
     const autoCompress = localStorage.getItem('autoCompress') === 'true';
@@ -1338,6 +1397,18 @@ function closeSettings() {
     const modal = document.getElementById('settings-modal');
     modal.style.display = 'none';
     document.body.style.overflow = '';
+}
+
+function toggleTips() {
+    const container = document.getElementById('tips-container');
+    const text = document.getElementById('tips-toggle-text');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        text.textContent = '隐藏快捷键与操作提示';
+    } else {
+        container.style.display = 'none';
+        text.textContent = '查看快捷键与操作提示';
+    }
 }
 
 function toggleSimpleMode() {
@@ -1757,4 +1828,157 @@ function initGridMode() {
         if (container) container.classList.add('grid-mode');
     }
     updateGridModeIcon(savedMode);
+}
+
+// --- 自定义背景文件夹逻辑 (IndexedDB) ---
+
+async function openBGDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('LanClipBGDB', 2); // 升级版本以增加缓存表
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('backgrounds')) {
+                db.createObjectStore('backgrounds', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('active_cache')) {
+                db.createObjectStore('active_cache', { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function getBGCount(db) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('backgrounds', 'readonly');
+        const store = tx.objectStore('backgrounds');
+        const request = store.count();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getBGById(db, id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('backgrounds', 'readonly');
+        const store = tx.objectStore('backgrounds');
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getActiveCache(db) {
+    return new Promise((resolve) => {
+        const tx = db.transaction('active_cache', 'readonly');
+        const store = tx.objectStore('active_cache');
+        const request = store.get('current');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(null);
+    });
+}
+
+async function updateActiveCache(db, envKey, data) {
+    return new Promise((resolve) => {
+        const tx = db.transaction('active_cache', 'readwrite');
+        const store = tx.objectStore('active_cache');
+        store.put({ id: 'current', envKey: envKey, data: data });
+        tx.oncomplete = () => resolve();
+    });
+}
+
+async function selectBackgroundFolder() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        if (files.length === 0) {
+            alert('选择的文件夹中没有图片文件');
+            return;
+        }
+
+        try {
+            const db = await openBGDB();
+            const tx = db.transaction('backgrounds', 'readwrite');
+            const store = tx.objectStore('backgrounds');
+            await store.clear();
+
+            // 批量保存原始 Blob (File 对象)，手动指定 0-indexed ID
+            const savePromises = files.map((file, i) => {
+                return new Promise((resolve, reject) => {
+                    const txInner = db.transaction(['backgrounds', 'active_cache'], 'readwrite');
+                    const request = txInner.objectStore('backgrounds').add({
+                        id: i, // 强制使用连续数字 ID，方便 O(1) 查询
+                        name: file.name,
+                        data: file
+                    });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject();
+                });
+            });
+
+            await Promise.all(savePromises);
+
+            // 清理掉可能存在的旧缓存
+            const txCache = db.transaction('active_cache', 'readwrite');
+            await txCache.objectStore('active_cache').clear();
+            localStorage.setItem('hasCustomBG', 'true');
+            updateBGFolderStatus();
+            const url = await getRandomBackgroundImage();
+            if (url) setBackgroundImage(url);
+            alert(`成功加载 ${files.length} 张图片作为背景`);
+        } catch (err) {
+            console.error(err);
+            alert('保存背景图片失败');
+        }
+    };
+    input.click();
+}
+
+async function clearBackgroundFolder() {
+    if (!confirm('确定要清除自定义背景文件夹吗？')) return;
+    try {
+        const db = await openBGDB();
+        const tx = db.transaction('backgrounds', 'readwrite');
+        await tx.objectStore('backgrounds').clear();
+        localStorage.removeItem('hasCustomBG');
+        localStorage.removeItem('bgManualOffset');
+        updateBGFolderStatus();
+        // 恢复默认背景
+        const url = await getRandomBackgroundImage();
+        if (url) setBackgroundImage(url);
+        alert('已恢复默认背景');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function updateBGFolderStatus() {
+    const info = document.getElementById('bg-folder-info');
+    if (!info) return;
+
+    if (localStorage.getItem('hasCustomBG') === 'true') {
+        try {
+            const db = await openBGDB();
+            const count = await getBGCount(db);
+            info.textContent = `当前已加载 ${count} 张自定义图片`;
+        } catch (e) {
+            info.textContent = '(加载信息失败)';
+        }
+    } else {
+        info.textContent = '(未选择自定义文件夹)';
+        const previewContainer = document.getElementById('bg-preview-container');
+        if (previewContainer) previewContainer.style.display = 'none';
+    }
+}
+
+async function nextBackground() {
+    const currentOffset = parseInt(localStorage.getItem('bgManualOffset')) || 0;
+    localStorage.setItem('bgManualOffset', currentOffset + 1);
+    const url = await getRandomBackgroundImage();
+    if (url) {
+        setBackgroundImage(url);
+    }
 }

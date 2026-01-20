@@ -64,7 +64,7 @@ body {
     background: var(--input-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--input-border);
+    /* border: 1px solid var(--input-border); */
     padding: 16px 20px;
     border-radius: 28px;
     display: flex;
@@ -280,7 +280,8 @@ body.simple-mode .card-header .icon-button:hover {
     font-size: 15px;
     line-height: 1.5;
     color: var(--text-color);
-    background: transparent;
+    /* background: transparent;卡片颜色 调黑了一点为了可读性 */
+    background-color: #0000001f;
     border: none;
     width: 100%;
     box-sizing: border-box;
@@ -1110,6 +1111,7 @@ input:checked+.slider:before {
 [data-theme="dark"] .card-wrapper.highlight {
     box-shadow: 0 0 15px rgba(88, 166, 255, 0.3) !important;
 }
+
 /* 全屏输入模式 */
 .input-container.fullscreen {
     position: fixed;
@@ -1119,12 +1121,14 @@ input:checked+.slider:before {
     bottom: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 99999; /* Ensure it's on top of everything including modals if needed */
+    z-index: 99999;
+    /* Ensure it's on top of everything including modals if needed */
     border-radius: 0;
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
-    background: var(--bg-color); /* Use theme background */
+    background: var(--bg-color);
+    /* Use theme background */
     display: flex;
     flex-direction: column;
 }
@@ -1140,19 +1144,22 @@ input:checked+.slider:before {
     margin-bottom: 10px;
 }
 
-/* 隐藏全屏模式下textarea的滚动条但允许滚�?*/
+/* 隐藏全屏模式下textarea的滚动条但允许滚�?*/
 .input-container.fullscreen textarea::-webkit-scrollbar {
     display: none;
 }
 
 .input-container.fullscreen textarea {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 /* In fullscreen, make the button group stick to bottom if desired, or just normal flow */
 .input-container.fullscreen .button-group {
-    margin-top: auto; /* Push to bottom if container is flex column */
+    margin-top: auto;
+    /* Push to bottom if container is flex column */
     background: transparent;
 }
 
@@ -1186,7 +1193,9 @@ input:checked+.slider:before {
     }
 }
 
-.card.grid-mode { max-width: 100% !important; }
+.card.grid-mode {
+    max-width: 100% !important;
+}
 
 /* Highlight Mode Base Style */
 body.highlight-mode-active .card-wrapper {

@@ -13,6 +13,44 @@
     <meta name="apple-mobile-web-app-title" content="LanClip">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .btn-block {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .btn-block:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-block.danger {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+        }
+
+        .btn-block.danger:hover {
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        .btn-block.secondary {
+            background: rgba(var(--primary-rgb, 0, 122, 255), 0.1);
+            border-color: rgba(var(--primary-rgb, 0, 122, 255), 0.3);
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
@@ -221,6 +259,27 @@
                             <span class="setting-label">简洁模式（隐藏背景图片）</span>
                         </div>
 
+                        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                            <span class="setting-label">自定义背景图片文件夹</span>
+                            <div id="bg-preview-container"
+                                style="width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); display: none;">
+                                <img id="bg-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div style="display: flex; gap: 10px; width: 100%;">
+                                <button onclick="selectBackgroundFolder()" class="btn-block" style="flex: 1;">
+                                    <i class="fas fa-folder-open"></i> 选择文件夹
+                                </button>
+                                <button onclick="nextBackground()" class="btn-block" style="width: 50px;" title="下一张">
+                                    <i class="fas fa-step-forward"></i>
+                                </button>
+                                <button onclick="clearBackgroundFolder()" class="btn-block danger" style="width: 50px;"
+                                    title="清除/回复默认">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <span id="bg-folder-info" style="font-size: 12px; opacity: 0.6;">(未选择自定义文件夹)</span>
+                        </div>
+
                         <div class="setting-item">
                             <label class="switch">
                                 <input type="checkbox" id="clear-history-toggle" onchange="clearHistory()">
@@ -248,49 +307,57 @@
                     </div>
 
                     <div class="settings-section">
-                        <h4>使用提示</h4>
-                        <div class="tips-list">
-                            <div class="tip-item">
-                                <i class="fas fa-keyboard"></i>
-                                <span>Ctrl+Enter 快速发送消息</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-image"></i>
-                                <span>点击图片可以查看大图</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-arrows-alt"></i>
-                                <span>使用方向键切换图片</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-file-upload"></i>
-                                <span>支持拖拽上传文件</span>
-                            </div>
-                        </div>
+                        <button onclick="toggleTips()" class="btn-block secondary">
+                            <i class="fas fa-lightbulb"></i> <span id="tips-toggle-text">查看快捷键与操作提示</span>
+                        </button>
                     </div>
 
-                    <div class="settings-section">
-                        <h4>选中模式</h4>
-                        <div class="tips-list">
-                            <div class="tip-item">
-                                <i class="fas fa-mouse-pointer"></i>
-                                <span>双击卡片或点击顶部图标进入选中模式</span>
+                    <div id="tips-container" style="display: none;">
+                        <div class="settings-section">
+                            <h4>使用提示</h4>
+                            <div class="tips-list">
+                                <div class="tip-item">
+                                    <i class="fas fa-keyboard"></i>
+                                    <span>Ctrl+Enter 快速发送消息</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-image"></i>
+                                    <span>点击图片可以查看大图</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-arrows-alt"></i>
+                                    <span>使用方向键切换图片</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-file-upload"></i>
+                                    <span>支持拖拽上传文件</span>
+                                </div>
                             </div>
-                            <div class="tip-item">
-                                <i class="fas fa-arrows-alt"></i>
-                                <span>方向键 ↑ ↓ ← → 切换选中卡片</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-trash"></i>
-                                <span>Delete / Backspace 删除选中卡片</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-copy"></i>
-                                <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
-                            </div>
-                            <div class="tip-item">
-                                <i class="fas fa-times"></i>
-                                <span>Esc 退出选中模式</span>
+                        </div>
+
+                        <div class="settings-section">
+                            <h4>选中模式</h4>
+                            <div class="tips-list">
+                                <div class="tip-item">
+                                    <i class="fas fa-mouse-pointer"></i>
+                                    <span>双击卡片或点击顶部图标进入选中模式</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-arrows-alt"></i>
+                                    <span>方向键 ↑ ↓ ← → 切换选中卡片</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Delete / Backspace 删除选中卡片</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-copy"></i>
+                                    <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
+                                </div>
+                                <div class="tip-item">
+                                    <i class="fas fa-times"></i>
+                                    <span>Esc 退出选中模式</span>
+                                </div>
                             </div>
                         </div>
                     </div>
