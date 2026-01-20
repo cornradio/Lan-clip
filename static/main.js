@@ -1179,10 +1179,27 @@ async function copyToClipboard(button) {
     const imgElement = contentElement.querySelector('img');
 
     if (imgElement) {
-        button.style.backgroundColor = '#FF0000'; // 设置为红色
-        setTimeout(() => {
-            button.style.backgroundColor = ''; // 恢复原始颜色
-        }, 500); // 闪烁持续时间为500毫秒
+        // 检查环境是否支持一键复制图片 (HTTPS 或 localhost)
+        const isSecure = window.isSecureContext ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+
+        if (!isSecure) {
+            showNotification('HTTP 环境不支持一键复制图片，请右键手动复制', 'warning');
+            button.style.backgroundColor = '#FF0000';
+            setTimeout(() => button.style.backgroundColor = '', 500);
+            return;
+        }
+
+        const success = await copyImageToClipboard(imgElement.src, imgElement);
+        if (success) {
+            showNotification('图片已复制到剪贴板', 'success');
+            button.style.backgroundColor = '#4CAF50';
+        } else {
+            showNotification('图片复制失败，请尝试右键手动复制', 'error');
+            button.style.backgroundColor = '#FF0000';
+        }
+        setTimeout(() => button.style.backgroundColor = '', 500);
         return;
     } else {
         // 复制文本内容
@@ -1205,6 +1222,95 @@ function copyTextToClipboard(text) {
     tempTextarea.select();
     document.execCommand('copy');
     document.body.removeChild(tempTextarea);
+}
+
+async function copyImageToClipboard(src, imgElement) {
+    // 1. 优先尝试现代 Clipboard API (仅限 Secure Context)
+    // 注意：Chrome 仅在 localhost 或 HTTPS 下提供 navigator.clipboard.write
+    if (navigator.clipboard && window.ClipboardItem && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        try {
+            const response = await fetch(src);
+            let blob = await response.blob();
+
+            if (!blob.type.includes('png')) {
+                blob = await convertImageToPng(src);
+            }
+
+            const data = [new ClipboardItem({ [blob.type]: blob })];
+            await navigator.clipboard.write(data);
+            return true;
+        } catch (err) {
+            console.warn('Clipboard API 失败，尝试备选方案:', err);
+        }
+    }
+
+    // 2. 备选方案：通过 Selection 模拟“复制图片” (兼容 HTTP 环境)
+    // 这种方法模拟了用户在图片上右键选择“复制图片”的行为
+    try {
+        const selection = window.getSelection();
+        const oldRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+        const container = document.createElement('div');
+        container.contentEditable = true;
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '1px';
+        container.style.height = '1px';
+        container.style.opacity = '0';
+        container.style.overflow = 'hidden';
+        document.body.appendChild(container);
+
+        // 使用原本的图片元素克隆，确保包含完整的 URL 和样式
+        const imgClone = imgElement.cloneNode(true);
+        // 确保使用绝对路径
+        if (imgClone.src.startsWith('/')) {
+            imgClone.src = window.location.origin + imgClone.src;
+        }
+
+        container.appendChild(imgClone);
+
+        // 选中图片元素本身
+        const range = document.createRange();
+        range.selectNode(imgClone);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // 某些浏览器需要容器获得焦点才能执行复制
+        container.focus();
+
+        const success = document.execCommand('copy');
+
+        // 清理现场
+        document.body.removeChild(container);
+        selection.removeAllRanges();
+        if (oldRange) selection.addRange(oldRange);
+
+        return success;
+    } catch (err) {
+        console.error('备用复制方案失败:', err);
+        return false;
+    }
+}
+
+function convertImageToPng(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Canvas toBlob failed'));
+            }, 'image/png');
+        };
+        img.onerror = reject;
+        img.src = src;
+    });
 }
 
 // 添加图片导航相关变量和函数
