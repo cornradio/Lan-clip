@@ -79,38 +79,36 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 
 // 清空历史记录
 async function clearHistory() {
-    const toggle = document.getElementById('clear-history-toggle');
-    // 输入密码
-    const pwd = prompt('请输入密码以确认清空历史记录:');
-    if (!pwd) {
-        if (toggle) toggle.checked = false;
+    if (!confirm('确定要清空所有记录吗？此操作不可恢复！')) {
+        document.getElementById('clear-history-toggle').checked = false;
         return;
     }
 
-    if (await verifyPassword(pwd)) {
-        try {
-            const response = await fetch('/clear', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ password: pwd })
-            });
-            if (response.ok) {
-                const container = document.getElementById('card-container');
-                if (container) container.innerHTML = '';
-                alert('清空成功');
-            } else {
-                alert('清空失败');
-            }
-        } catch (e) {
-            console.error(e);
-            alert('请求出错');
-        }
-    } else {
-        alert('密码错误，操作已取消。');
+    const password = prompt('请输入管理员密码以进行清空:');
+    if (!password) {
+        document.getElementById('clear-history-toggle').checked = false;
+        return;
     }
-    if (toggle) toggle.checked = false;
+
+    try {
+        const response = await fetch('/clear_history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            showNotification('所有历史记录已成功清除', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('密码错误，操作已被拒绝', 'error');
+            document.getElementById('clear-history-toggle').checked = false;
+        }
+    } catch (e) {
+        console.error(e);
+        showNotification('清空失败，请检查网络连接', 'error');
+        document.getElementById('clear-history-toggle').checked = false;
+    }
 }
 function saveTextToLocalStorage() {
     const textarea = document.getElementById('input-text');
@@ -163,10 +161,10 @@ async function promptUnlockOldContent() {
     if (await verifyPassword(pwd)) {
         localStorage.setItem(VIEW_OLD_KEY, 'true');
         oldContentUnlocked = true;
-        alert('已解锁所有历史记录，将重新加载页面。');
+        showNotification('已解锁所有历史记录，将重新加载页面。', 'success');
         location.reload();
     } else {
-        alert('密码错误，无法查看 3 天前的内容。');
+        showNotification('密码错误，无法查看 3 天前的内容。', 'error');
         oldPasswordPrompting = false;
     }
 }
@@ -288,6 +286,7 @@ async function refreshCards() {
         }
     } catch (error) {
         console.error('刷新卡片失败:', error);
+        showNotification('刷新卡片失败，请检查网络。', 'error');
     } finally {
         isLoading = false;
         if (icon) {
@@ -322,6 +321,7 @@ async function loadMoreCards() {
         hasMore = data.has_more;
     } catch (error) {
         console.error('加载更多卡片失败:', error);
+        showNotification('加载更多卡片失败，请检查网络。', 'error');
     } finally {
         isLoading = false;
         if (loader) loader.style.display = 'none';
@@ -1188,7 +1188,7 @@ async function copyToClipboard(button) {
         // 复制文本内容
         const cardContent = contentElement.innerText.trim();
         copyTextToClipboard(cardContent);
-        alert('文本已复制到剪贴板');
+        showNotification('已复制到剪贴板', 'success');
     }
 
     // 闪烁按钮绿色
@@ -1928,10 +1928,10 @@ async function selectBackgroundFolder() {
             updateBGFolderStatus();
             const url = await getRandomBackgroundImage();
             if (url) setBackgroundImage(url);
-            alert(`成功加载 ${files.length} 张图片作为背景`);
+            showNotification(`成功加载 ${files.length} 张图片作为背景`, 'success');
         } catch (err) {
             console.error(err);
-            alert('保存背景图片失败');
+            showNotification('保存背景图片失败', 'error');
         }
     };
     input.click();
@@ -1949,7 +1949,7 @@ async function clearBackgroundFolder() {
         // 恢复默认背景
         const url = await getRandomBackgroundImage();
         if (url) setBackgroundImage(url);
-        alert('已恢复默认背景');
+        showNotification('已恢复默认背景', 'success');
     } catch (err) {
         console.error(err);
     }
@@ -1981,4 +1981,31 @@ async function nextBackground() {
     if (url) {
         setBackgroundImage(url);
     }
+}
+
+// --- Apple 风格通知系统 ---
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+
+    // 根据类型选择图标
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-circle';
+    if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+    notification.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(notification);
+
+    // 3秒后移除 DOM
+    setTimeout(() => {
+        notification.remove();
+    }, 3500);
 }
