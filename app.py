@@ -11,6 +11,7 @@ import argparse
 import time
 import auth_service
 import json
+import net_utils
 
 PINNED_FILE = 'pinned.json'
 
@@ -389,6 +390,7 @@ if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=port, debug=False)
     from waitress import serve
     print(f"Server running on http://localhost:{port}")
+    net_utils.display_server_info(port)
     serve(app, host="0.0.0.0", port=port)
 
 # debug

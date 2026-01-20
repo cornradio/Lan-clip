@@ -3,3 +3,4 @@ pyinstaller
 pillow
 pystray
 Waitress
+qrcode
