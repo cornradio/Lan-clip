@@ -155,7 +155,7 @@ def home():
     
     return render_template('index.html', cards=cards_cache, port=5000)
 
-@app.route('/clear', methods=['POST'])
+@app.route('/clear_history', methods=['POST'])
 def clear_history():
     # Verify password
     data = request.get_json(silent=True) or {}

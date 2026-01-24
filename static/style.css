@@ -1266,3 +1266,38 @@ body.highlight-mode-active .card-wrapper {
         transform: translateY(-20px) scale(0.95);
     }
 }
+
+#get-old-cards-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: rgba(59, 71, 89, 0.15);
+    border: 1px solid rgba(59, 71, 89, 0.3);
+    border-radius: 12px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 15px;
+    font-weight: 500;
+    margin: 30px auto !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+#get-old-cards-btn:hover {
+    background: rgba(59, 71, 89, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: rgba(59, 71, 89, 0.5);
+}
+
+#get-old-cards-btn i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+#get-old-cards-btn:hover i {
+    transform: rotate(-30deg);
+}

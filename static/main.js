@@ -28,8 +28,16 @@ function toggleFullscreenInput() {
     }
 }
 
+const ADMIN_PWD_KEY = 'adminPassword';
+
 // 验证密码
 async function verifyPassword(inputPwd) {
+    if (!inputPwd) {
+        // 尝试从 localStorage 获取
+        inputPwd = localStorage.getItem(ADMIN_PWD_KEY);
+        if (!inputPwd) return false;
+    }
+
     try {
         const res = await fetch('/api/verify_password', {
             method: 'POST',
@@ -37,6 +45,10 @@ async function verifyPassword(inputPwd) {
             body: JSON.stringify({ password: inputPwd })
         });
         const data = await res.json();
+        if (data.valid) {
+            // 验证成功，保存密码
+            localStorage.setItem(ADMIN_PWD_KEY, inputPwd);
+        }
         return data.valid;
     } catch {
         return false;
@@ -84,30 +96,46 @@ async function clearHistory() {
         return;
     }
 
-    const password = prompt('请输入管理员密码以进行清空:');
-    if (!password) {
-        document.getElementById('clear-history-toggle').checked = false;
-        return;
+    let password = localStorage.getItem(ADMIN_PWD_KEY);
+    let success = false;
+
+    if (password) {
+        success = await executeClear(password);
     }
 
+    if (!success) {
+        password = prompt('请输入管理员密码以进行清空:');
+        if (!password) {
+            document.getElementById('clear-history-toggle').checked = false;
+            return;
+        }
+        success = await executeClear(password);
+    }
+}
+
+async function executeClear(password) {
     try {
         const response = await fetch('/clear_history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: password })
         });
-        const data = await response.json();
-        if (data.status === 'success') {
+
+        if (response.status === 204 || response.status === 200) {
+            localStorage.setItem(ADMIN_PWD_KEY, password);
             showNotification('所有历史记录已成功清除', 'success');
             setTimeout(() => location.reload(), 1000);
+            return true;
         } else {
             showNotification('密码错误，操作已被拒绝', 'error');
             document.getElementById('clear-history-toggle').checked = false;
+            return false;
         }
     } catch (e) {
         console.error(e);
         showNotification('清空失败，请检查网络连接', 'error');
         document.getElementById('clear-history-toggle').checked = false;
+        return false;
     }
 }
 function saveTextToLocalStorage() {
@@ -150,8 +178,20 @@ function isCardOlderThanDays(timeStr, days) {
 
 async function promptUnlockOldContent() {
     if (oldContentUnlocked || oldPasswordPrompting) return;
-    oldPasswordPrompting = true;
 
+    // 尝试直接用已保存的密码解锁
+    const savedPwd = localStorage.getItem(ADMIN_PWD_KEY);
+    if (savedPwd) {
+        if (await verifyPassword(savedPwd)) {
+            localStorage.setItem(VIEW_OLD_KEY, 'true');
+            oldContentUnlocked = true;
+            showNotification('已自动解锁历史记录', 'success');
+            location.reload();
+            return;
+        }
+    }
+
+    oldPasswordPrompting = true;
     const pwd = prompt('3 天前的历史记录已保护，需要输入密码才能查看：');
     if (pwd === null) {
         oldPasswordPrompting = false;
@@ -166,6 +206,27 @@ async function promptUnlockOldContent() {
     } else {
         showNotification('密码错误，无法查看 3 天前的内容。', 'error');
         oldPasswordPrompting = false;
+    }
+}
+
+// 显示“获取旧卡片”按钮
+function showGetOldCardsButton() {
+    if (oldContentUnlocked || !hasOlderCards) return;
+
+    let btn = document.getElementById('get-old-cards-btn');
+    if (btn) return;
+
+    btn = document.createElement('button');
+    btn.id = 'get-old-cards-btn';
+    btn.className = 'btn-block secondary';
+    btn.style.margin = '20px auto';
+    btn.style.maxWidth = '300px';
+    btn.innerHTML = '<i class="fas fa-history"></i> 获取 3 天前的内容';
+    btn.onclick = promptUnlockOldContent;
+
+    const container = document.getElementById('card-container');
+    if (container) {
+        container.insertAdjacentElement('afterend', btn);
     }
 }
 
@@ -202,6 +263,7 @@ window.onload = function () {
                         for (let j = i; j < wrappers.length; j++) {
                             wrappers[j].remove();
                         }
+                        showGetOldCardsButton();
                         break;
                     }
                 }
@@ -218,7 +280,7 @@ window.onload = function () {
                 loadMoreCards();
             } else if (!hasMore && hasOlderCards && !oldContentUnlocked) {
                 // 没有更多新内容，但存在旧内容且未解锁
-                promptUnlockOldContent();
+                showGetOldCardsButton();
             }
         }
     });
@@ -312,6 +374,7 @@ async function loadMoreCards() {
             if (!oldContentUnlocked && isCardOlderThanDays(card.time, OLD_DAYS_LIMIT)) {
                 hasOlderCards = true;
                 hasMore = false;
+                showGetOldCardsButton();
                 return;
             }
             container.insertAdjacentHTML('beforeend', getCardHtml(card));
