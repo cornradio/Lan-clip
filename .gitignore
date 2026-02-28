@@ -7,3 +7,4 @@ uploads/*
 __pycache__/
 *.zip
 lan-clip-deploy.tar
+.venv/

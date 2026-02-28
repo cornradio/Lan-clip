@@ -14,6 +14,48 @@ import json
 import net_utils
 
 PINNED_FILE = 'pinned.json'
+PERMISSION_LOCK_FILE = 'perm_lock.json'
+
+def load_permission_lock():
+    try:
+        if os.path.exists(PERMISSION_LOCK_FILE):
+            with open(PERMISSION_LOCK_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('enabled', False)
+    except Exception as e:
+        print(f"加载权限锁文件出错: {str(e)}")
+    return False
+
+def save_permission_lock(enabled):
+    try:
+        with open(PERMISSION_LOCK_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'enabled': enabled}, f)
+    except Exception as e:
+        print(f"保存权限锁文件出错: {str(e)}")
+
+# 全局变量记录权限锁状态
+permission_lock_enabled = load_permission_lock()
+
+def is_authenticated():
+    # 尝试从各种来源获取密码
+    password = request.headers.get('X-Admin-Password')
+    if not password and request.is_json:
+        data = request.get_json(silent=True)
+        if data:
+            password = data.get('password')
+    if not password:
+        password = request.cookies.get('admin_password')
+    
+    return auth_service.verify_password(password)
+
+def get_filtered_cards(all_cards):
+    if is_authenticated():
+        return all_cards
+    
+    now = time.time()
+    three_days_sec = 3 * 24 * 60 * 60
+    return [c for c in all_cards if now - c.get('timestamp', 0) <= three_days_sec]
+
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -153,7 +195,7 @@ def home():
             # 重新加载以更新缓存
             load_cards()
     
-    return render_template('index.html', cards=cards_cache, port=5000)
+    return render_template('index.html', cards=get_filtered_cards(cards_cache), port=5000, permission_lock_enabled=permission_lock_enabled)
 
 @app.route('/clear_history', methods=['POST'])
 def clear_history():
@@ -199,6 +241,8 @@ def clear_history():
 
 @app.route('/delete_card', methods=['POST'])
 def delete_card():
+    if permission_lock_enabled and not is_authenticated():
+        return jsonify({'status': 'error', 'message': '需要管理员密码'}), 401
     global cards_cache
     try:
         data = request.json
@@ -305,6 +349,22 @@ def verify_password_api():
         return jsonify({'valid': True})
     return jsonify({'valid': False})
 
+@app.route('/api/permission_config', methods=['GET', 'POST'])
+def permission_config():
+    global permission_lock_enabled
+    if request.method == 'POST':
+        data = request.json
+        password = data.get('password')
+        if not auth_service.verify_password(password):
+            return jsonify({'error': 'Password verification failed'}), 401
+        
+        permission_lock_enabled = data.get('enabled', False)
+        save_permission_lock(permission_lock_enabled)
+        log_action("SET_PERMISSION_LOCK", f"{permission_lock_enabled}")
+        return jsonify({'status': 'success', 'enabled': permission_lock_enabled})
+    
+    return jsonify({'enabled': permission_lock_enabled})
+
 def open_browser():
     webbrowser.open('http://127.0.0.1:5000')
 
@@ -313,6 +373,14 @@ def add_card():
     try:
         content = request.json.get('text', '')
         if content:
+            # Check if this is an edit (which front-end calls add after delete)
+            # Actually, front-end deleteCard is called first. 
+            # But what if someone tries to add directly? 
+            # The user said "执行删除和编辑操作", edit is front-end only (delete + add).
+            # So add_card technically doesn't need a lock? 
+            # "当前任何人都可以置顶、编辑、删除帖子" -> pin, edit, delete.
+            # "编辑" in this app is delete then add.
+            # So locking delete is enough for edit.
             new_id = save_card(content)
             if new_id:
                 load_cards() # Ensure sorting is updated
@@ -333,18 +401,23 @@ def get_cards_api():
     size = int(request.args.get('size', 20))
     
     # cards_cache 已经是排序好的了（置顶在前，其余倒序）
-    all_cards = cards_cache
+    filtered_cards = get_filtered_cards(cards_cache)
+    
+    all_cards = filtered_cards
     
     start = (page - 1) * size
     end = start + size
     
     return jsonify({
         'cards': all_cards[start:end],
-        'has_more': end < len(all_cards)
+        'has_more': end < len(all_cards),
+        'has_restricted': len(filtered_cards) < len(cards_cache)
     })
 
 @app.route('/api/pin_card', methods=['POST'])
 def pin_card():
+    if permission_lock_enabled and not is_authenticated():
+        return jsonify({'status': 'error', 'message': '需要管理员密码'}), 401
     try:
         card_id = request.json.get('id')
         if not card_id:
@@ -362,6 +435,8 @@ def pin_card():
 
 @app.route('/api/unpin_card', methods=['POST'])
 def unpin_card():
+    if permission_lock_enabled and not is_authenticated():
+        return jsonify({'status': 'error', 'message': '需要管理员密码'}), 401
     try:
         card_id = request.json.get('id')
         if not card_id:

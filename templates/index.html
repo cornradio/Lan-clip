@@ -259,6 +259,14 @@
                             <span class="setting-label">简洁模式（隐藏背景图片）</span>
                         </div>
 
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="perm-lock-toggle" onchange="togglePermissionLock()" {{ 'checked' if permission_lock_enabled else '' }}>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">权限管理（置顶/编辑/删除需要密码）</span>
+                        </div>
+
                         <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                             <span class="setting-label">自定义背景图片文件夹</span>
                             <div id="bg-preview-container"

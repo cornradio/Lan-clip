@@ -48,11 +48,54 @@ async function verifyPassword(inputPwd) {
         if (data.valid) {
             // 验证成功，保存密码
             localStorage.setItem(ADMIN_PWD_KEY, inputPwd);
+            // 同时存入 cookie，让后端初始加载就能识别
+            document.cookie = `admin_password=${inputPwd}; path=/; max-age=31536000`;
         }
         return data.valid;
     } catch {
         return false;
     }
+}
+
+// 权限管理开关
+async function togglePermissionLock() {
+    const toggle = document.getElementById('perm-lock-toggle');
+    const newState = toggle.checked;
+
+    // 我们需要密码才能改变这个状态
+    let password = localStorage.getItem(ADMIN_PWD_KEY);
+    if (!password) {
+        password = prompt('请输入管理员密码以更改权限设置:');
+        if (!password) {
+            toggle.checked = !newState;
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch('/api/permission_config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password, enabled: newState })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            localStorage.setItem(ADMIN_PWD_KEY, password);
+            showNotification(`管理模式已${newState ? '开启' : '关闭'}`, 'success');
+        } else {
+            showNotification('操作失败：密码错误', 'error');
+            toggle.checked = !newState;
+        }
+    } catch (e) {
+        console.error(e);
+        showNotification('操作失败，请重试', 'error');
+        toggle.checked = !newState;
+    }
+}
+
+function getAuthHeaders() {
+    const pwd = localStorage.getItem(ADMIN_PWD_KEY);
+    return pwd ? { 'X-Admin-Password': pwd } : {};
 }
 
 // 格式化时间戳
@@ -237,6 +280,12 @@ window.onload = function () {
     updateAllTimes();
     initGridMode();
 
+    // 同步 cookie
+    const initialPwd = localStorage.getItem(ADMIN_PWD_KEY);
+    if (initialPwd) {
+        document.cookie = `admin_password=${initialPwd}; path=/; max-age=31536000`;
+    }
+
     // 监听全屏快捷键 (Esc 退出全屏)
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
@@ -329,7 +378,9 @@ async function refreshCards() {
     if (icon) icon.classList.add('fa-spin');
 
     try {
-        const response = await fetch(`/api/cards?page=1&size=${PAGE_SIZE}`);
+        const response = await fetch(`/api/cards?page=1&size=${PAGE_SIZE}`, {
+            headers: getAuthHeaders()
+        });
         const data = await response.json();
 
         const container = document.getElementById('card-container');
@@ -345,6 +396,10 @@ async function refreshCards() {
 
             currentPage = 1;
             hasMore = data.has_more;
+            if (data.has_restricted) {
+                hasOlderCards = true;
+                showGetOldCardsButton();
+            }
         }
     } catch (error) {
         console.error('刷新卡片失败:', error);
@@ -365,7 +420,9 @@ async function loadMoreCards() {
     if (loader) loader.style.display = 'block';
 
     try {
-        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}`);
+        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}`, {
+            headers: getAuthHeaders()
+        });
         const data = await response.json();
 
         const container = document.getElementById('card-container');
@@ -382,6 +439,10 @@ async function loadMoreCards() {
 
         currentPage++;
         hasMore = data.has_more;
+        if (data.has_restricted) {
+            hasOlderCards = true;
+            if (!hasMore) showGetOldCardsButton();
+        }
     } catch (error) {
         console.error('加载更多卡片失败:', error);
         showNotification('加载更多卡片失败，请检查网络。', 'error');
@@ -886,16 +947,12 @@ async function deleteCard(button) {
 
     cardWrapper.classList.add('fade-out');
 
-    // 2. 动画结束后移除元素
-    setTimeout(() => {
-        cardWrapper.remove();
-    }, 500);
-
     try {
         const response = await fetch('/delete_card', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
             },
             body: JSON.stringify({
                 id: cardId
@@ -903,14 +960,32 @@ async function deleteCard(button) {
         });
 
         const result = await response.json();
-        if (result.status !== 'success') {
+        if (response.status === 401) {
+            const pwd = prompt('此操作需要管理员密码：');
+            if (pwd) {
+                if (await verifyPassword(pwd)) {
+                    // 验证成功，重试操作
+                    return deleteCard(button);
+                } else {
+                    showNotification('密码错误，无法删除，此操作将被记录', 'error');
+                }
+            }
+            // 恢复 UI
+            cardWrapper.classList.remove('fade-out');
+            return;
+        }
+
+        if (result.status === 'success') {
+            cardWrapper.remove();
+        } else {
             throw new Error(result.message || '未知错误');
         }
     } catch (error) {
         console.error('删除出错:', error);
-        // 如果删除失败，为了数据一致性，建议刷新
-        alert('删除失败，页面将刷新已恢复数据');
-        location.reload();
+        cardWrapper.classList.remove('fade-out');
+        if (error.message !== '需要管理员密码') {
+            showNotification('密码错误，无法删除，此操作将被记录', 'error');
+        }
     }
 }
 
@@ -925,10 +1000,24 @@ async function togglePin(button) {
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
             body: JSON.stringify({ id: cardId })
         });
         const data = await response.json();
+
+        if (response.status === 401) {
+            const pwd = prompt('此操作需要管理员密码：');
+            if (pwd) {
+                if (await verifyPassword(pwd)) {
+                    // 验证成功，重试操作
+                    return togglePin(button);
+                }
+            }
+            return;
+        }
 
         if (data.status === 'success') {
             const container = document.getElementById('card-container');
