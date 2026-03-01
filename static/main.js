@@ -205,7 +205,7 @@ const PAGE_SIZE = 20;
 // 旧内容访问控制（3 天前）
 const OLD_DAYS_LIMIT = 3;
 const VIEW_OLD_KEY = 'viewOldContentUnlocked';
-let oldContentUnlocked = localStorage.getItem(VIEW_OLD_KEY) === 'true';
+let oldContentLoaded = false; // 是否已经点击并加载了旧内容
 let hasOlderCards = false;
 let oldPasswordPrompting = false;
 
@@ -220,16 +220,15 @@ function isCardOlderThanDays(timeStr, days) {
 }
 
 async function promptUnlockOldContent() {
-    if (oldContentUnlocked || oldPasswordPrompting) return;
+    if (oldContentLoaded || oldPasswordPrompting) return;
 
-    // 尝试直接用已保存的密码解锁
+    // 尝试直接用已保存的密码验证，如果不通过则提示
     const savedPwd = localStorage.getItem(ADMIN_PWD_KEY);
     if (savedPwd) {
         if (await verifyPassword(savedPwd)) {
-            localStorage.setItem(VIEW_OLD_KEY, 'true');
-            oldContentUnlocked = true;
-            showNotification('已自动解锁历史记录', 'success');
-            location.reload();
+            oldContentLoaded = true;
+            showNotification('正在加载历史内容...', 'success');
+            refreshCards(true); // 传入 true 表示加载旧内容
             return;
         }
     }
@@ -242,22 +241,24 @@ async function promptUnlockOldContent() {
     }
 
     if (await verifyPassword(pwd)) {
-        localStorage.setItem(VIEW_OLD_KEY, 'true');
-        oldContentUnlocked = true;
-        showNotification('已解锁所有历史记录，将重新加载页面。', 'success');
-        location.reload();
+        oldContentLoaded = true;
+        showNotification('已解锁历史记录，正在加载...', 'success');
+        refreshCards(true);
     } else {
         showNotification('密码错误，无法查看 3 天前的内容。', 'error');
-        oldPasswordPrompting = false;
     }
+    oldPasswordPrompting = false;
 }
 
 // 显示“获取旧卡片”按钮
 function showGetOldCardsButton() {
-    if (oldContentUnlocked || !hasOlderCards) return;
+    if (oldContentLoaded) return; // 如果已经加载了，就不再显示按钮
 
     let btn = document.getElementById('get-old-cards-btn');
-    if (btn) return;
+    if (btn) {
+        btn.style.display = 'block';
+        return;
+    }
 
     btn = document.createElement('button');
     btn.id = 'get-old-cards-btn';
@@ -297,8 +298,9 @@ window.onload = function () {
         }
     });
 
-    // 首屏内容中过滤 3 天前的卡片（除非已解锁）
-    if (!oldContentUnlocked) {
+    // 初始加载时，我们总是假设可能存在旧卡片（由后端 has_restricted 决定）
+    // 前端逻辑改为：如果不处于 oldContentLoaded 状态，则过滤掉旧内容
+    if (!oldContentLoaded) {
         try {
             const container = document.getElementById('card-container');
             if (container) {
@@ -326,9 +328,9 @@ window.onload = function () {
     window.addEventListener('scroll', () => {
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
             if (hasMore && !isLoading) {
-                loadMoreCards();
-            } else if (!hasMore && hasOlderCards && !oldContentUnlocked) {
-                // 没有更多新内容，但存在旧内容且未解锁
+                loadMoreCards(oldContentLoaded);
+            } else if (!hasMore && hasOlderCards && !oldContentLoaded) {
+                // 没有更多新内容，但存在旧内容且未加载
                 showGetOldCardsButton();
             }
         }
@@ -368,9 +370,15 @@ function getCardHtml(card) {
         </div>`;
 }
 
-async function refreshCards() {
+async function refreshCards(showOld = false) {
     if (isLoading) return;
     isLoading = true;
+
+    if (showOld) {
+        oldContentLoaded = true;
+        const btn = document.getElementById('get-old-cards-btn');
+        if (btn) btn.style.display = 'none';
+    }
 
     // Spin animation to indicate work
     const refreshBtn = event?.currentTarget || document.querySelector('button[title="刷新"]');
@@ -378,7 +386,7 @@ async function refreshCards() {
     if (icon) icon.classList.add('fa-spin');
 
     try {
-        const response = await fetch(`/api/cards?page=1&size=${PAGE_SIZE}`, {
+        const response = await fetch(`/api/cards?page=1&size=${PAGE_SIZE}&show_old=${showOld}`, {
             headers: getAuthHeaders()
         });
         const data = await response.json();
@@ -387,10 +395,7 @@ async function refreshCards() {
         if (container) {
             container.innerHTML = '';
             data.cards.forEach(card => {
-                if (!oldContentUnlocked && isCardOlderThanDays(card.time, OLD_DAYS_LIMIT)) {
-                    hasOlderCards = true;
-                    return;
-                }
+                // 不再在前端硬编码过滤，完全交由后端根据 show_old 返回
                 container.insertAdjacentHTML('beforeend', getCardHtml(card));
             });
 
@@ -412,7 +417,7 @@ async function refreshCards() {
     }
 }
 
-async function loadMoreCards() {
+async function loadMoreCards(showOld = false) {
     if (isLoading) return;
     isLoading = true;
 
@@ -420,20 +425,13 @@ async function loadMoreCards() {
     if (loader) loader.style.display = 'block';
 
     try {
-        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}`, {
+        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}&show_old=${showOld}`, {
             headers: getAuthHeaders()
         });
         const data = await response.json();
 
         const container = document.getElementById('card-container');
         data.cards.forEach(card => {
-            // 未解锁旧内容时，遇到 3 天前的卡片就停止继续加载
-            if (!oldContentUnlocked && isCardOlderThanDays(card.time, OLD_DAYS_LIMIT)) {
-                hasOlderCards = true;
-                hasMore = false;
-                showGetOldCardsButton();
-                return;
-            }
             container.insertAdjacentHTML('beforeend', getCardHtml(card));
         });
 
@@ -909,18 +907,21 @@ dropZone.addEventListener('dragleave', function (e) {
 // 卡片操作相关函数
 async function editCard(button) {
     const cardWrapper = button.closest('.card-wrapper');
-    const content = cardWrapper.querySelector('.card-content').innerText;
+    const contentHtml = cardWrapper.querySelector('.card-content').innerHTML;
+    const isFileOrImage = contentHtml.includes('file-card') || contentHtml.includes('image-card') || contentHtml.includes('<img');
 
     // 1. 将内容放入输入框
+    // 对于文件/图片使用 innerHTML，对于纯文本为了编辑方便使用 innerText
     const textarea = document.getElementById('input-text');
-    textarea.value = content;
-    localStorage.setItem('input-text-content', content);
+    const contentToEdit = isFileOrImage ? contentHtml : cardWrapper.querySelector('.card-content').innerText;
+    textarea.value = contentToEdit;
+    localStorage.setItem('input-text-content', contentToEdit);
 
     // 2. 滚动到顶部并聚焦
     window.scrollTo({ top: 0, behavior: 'smooth' });
     textarea.focus();
 
-    // 3. 删除原卡片
+    // 3. 删除原卡片 (新提交会自动带上当前时间)
     await deleteCard(button);
 }
 
@@ -1169,6 +1170,10 @@ async function downloadCard(button) {
 // 处理输入
 function processInput(input) {
     var outstr = input.trim();
+    // 如果内容看起来已经包含 HTML 标签（特别是我们的卡片结构），就不再处理，防止破坏结构
+    if (outstr.includes('<div') || outstr.includes('<img') || outstr.includes('<a ')) {
+        return outstr;
+    }
     // 使用正则表达式匹配所有链接
     outstr = outstr.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
     return outstr;
@@ -1183,12 +1188,14 @@ async function addCard() {
     if (!content) return;
 
     try {
+        const requestData = { text: content };
+
         const response = await fetch('/api/add_card', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: content })
+            body: JSON.stringify(requestData)
         });
 
         const result = await response.json();

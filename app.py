@@ -48,10 +48,12 @@ def is_authenticated():
     
     return auth_service.verify_password(password)
 
-def get_filtered_cards(all_cards):
-    if is_authenticated():
+def get_filtered_cards(all_cards, force_show_all=False):
+    # 只有当 force_show_all 为 True 且已认证时，才显示全部内容
+    if force_show_all and is_authenticated():
         return all_cards
     
+    # 否则，无论是否认证，都默认只显示 3 天内的内容
     now = time.time()
     three_days_sec = 3 * 24 * 60 * 60
     return [c for c in all_cards if now - c.get('timestamp', 0) <= three_days_sec]
@@ -149,7 +151,7 @@ def load_cards():
         print(f"加载卡片出错: {str(e)}")
         return []
 
-def save_card(content):
+def save_card(content, timestamp=None):
     global cards_cache
     try:
         ensure_cards_dir()
@@ -163,6 +165,10 @@ def save_card(content):
         file_path = os.path.join(CARDS_DIR, f'{next_num}.txt')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
+        
+        # 如果提供了时间戳，设置文件的修改时间
+        if timestamp is not None:
+            os.utime(file_path, (timestamp, timestamp))
         
         mtime = os.path.getmtime(file_path)
         time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
@@ -195,7 +201,7 @@ def home():
             # 重新加载以更新缓存
             load_cards()
     
-    return render_template('index.html', cards=get_filtered_cards(cards_cache), port=5000, permission_lock_enabled=permission_lock_enabled)
+    return render_template('index.html', cards=get_filtered_cards(cards_cache, force_show_all=False), port=port, permission_lock_enabled=permission_lock_enabled)
 
 @app.route('/clear_history', methods=['POST'])
 def clear_history():
@@ -372,16 +378,10 @@ def open_browser():
 def add_card():
     try:
         content = request.json.get('text', '')
+        timestamp = request.json.get('timestamp')
         if content:
-            # Check if this is an edit (which front-end calls add after delete)
-            # Actually, front-end deleteCard is called first. 
-            # But what if someone tries to add directly? 
-            # The user said "执行删除和编辑操作", edit is front-end only (delete + add).
-            # So add_card technically doesn't need a lock? 
-            # "当前任何人都可以置顶、编辑、删除帖子" -> pin, edit, delete.
-            # "编辑" in this app is delete then add.
-            # So locking delete is enough for edit.
-            new_id = save_card(content)
+            # ... existing comments ...
+            new_id = save_card(content, timestamp=timestamp)
             if new_id:
                 load_cards() # Ensure sorting is updated
                 log_action("API_ADD_CARD", f"ID: {new_id}, 内容: {content[:30]}...")
@@ -399,9 +399,10 @@ def get_cards_api():
     
     page = int(request.args.get('page', 1))
     size = int(request.args.get('size', 20))
+    show_old = request.args.get('show_old', 'false').lower() == 'true'
     
     # cards_cache 已经是排序好的了（置顶在前，其余倒序）
-    filtered_cards = get_filtered_cards(cards_cache)
+    filtered_cards = get_filtered_cards(cards_cache, force_show_all=show_old)
     
     all_cards = filtered_cards
     
@@ -411,7 +412,7 @@ def get_cards_api():
     return jsonify({
         'cards': all_cards[start:end],
         'has_more': end < len(all_cards),
-        'has_restricted': len(filtered_cards) < len(cards_cache)
+        'has_restricted': len(cards_cache) > len(get_filtered_cards(cards_cache, force_show_all=False))
     })
 
 @app.route('/api/pin_card', methods=['POST'])
