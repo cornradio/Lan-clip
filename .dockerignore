@@ -5,4 +5,13 @@ __pycache__/
 *.sh
 *.pyc
 .git/
-.pytest_cache/ 
+.pytest_cache/
+cards/
+images/
+uploads/
+perm_lock.json
+pinned.json
+pwd.txt
+*.spec
+*.tar
+*.zip 

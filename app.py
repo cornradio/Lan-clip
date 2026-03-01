@@ -7,7 +7,6 @@ import webbrowser
 import glob
 from werkzeug.utils import secure_filename
 import argparse
-import argparse
 import time
 import auth_service
 import json
@@ -15,6 +14,9 @@ import net_utils
 
 PINNED_FILE = 'pinned.json'
 PERMISSION_LOCK_FILE = 'perm_lock.json'
+
+# 设置默认端口
+port = 5002 if sys.platform == 'darwin' else 5000
 
 def load_permission_lock():
     try:
@@ -199,9 +201,12 @@ def home():
             save_card(new_text)
             log_action("HOME_POST", f"添加文本: {new_text[:50]}...")
             # 重新加载以更新缓存
-            load_cards()
-    
-    return render_template('index.html', cards=get_filtered_cards(cards_cache, force_show_all=False), port=port, permission_lock_enabled=permission_lock_enabled)
+    has_restricted = len(cards_cache) > len(get_filtered_cards(cards_cache, force_show_all=False))
+    return render_template('index.html', 
+                          cards=get_filtered_cards(cards_cache, force_show_all=False), 
+                          port=port, 
+                          permission_lock_enabled=permission_lock_enabled,
+                          has_restricted=has_restricted)
 
 @app.route('/clear_history', methods=['POST'])
 def clear_history():
@@ -454,15 +459,12 @@ def unpin_card():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    if sys.platform == 'darwin':  # macOS
-        parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')
-        parser.add_argument('--port', type=int, default=5002, help='Port number to run the app on.')
-        args = parser.parse_args()
-    else:
-        parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')
-        parser.add_argument('--port', type=int, default=5000, help='Port number to run the app on.')
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')
+    parser.add_argument('--port', type=int, default=port, help='Port number to run the app on.')
+    args = parser.parse_args()
+    
     port = args.port
+    
     # app.run(host='0.0.0.0', port=port, debug=False)
     from waitress import serve
     print(f"Server running on http://localhost:{port}")

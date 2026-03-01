@@ -298,30 +298,16 @@ window.onload = function () {
         }
     });
 
-    // 初始加载时，我们总是假设可能存在旧卡片（由后端 has_restricted 决定）
-    // 前端逻辑改为：如果不处于 oldContentLoaded 状态，则过滤掉旧内容
-    if (!oldContentLoaded) {
-        try {
-            const container = document.getElementById('card-container');
-            if (container) {
-                const wrappers = Array.from(container.querySelectorAll('.card-wrapper'));
-                for (let i = 0; i < wrappers.length; i++) {
-                    const timeEl = wrappers[i].querySelector('.card-time');
-                    const timeText = timeEl ? timeEl.textContent.trim() : '';
-                    if (isCardOlderThanDays(timeText, OLD_DAYS_LIMIT)) {
-                        hasOlderCards = true;
-                        // 删除这条以及后面的所有卡片（它们更老）
-                        for (let j = i; j < wrappers.length; j++) {
-                            wrappers[j].remove();
-                        }
-                        showGetOldCardsButton();
-                        break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('过滤旧卡片失败:', e);
-        }
+    // 初始加载时，同步 hasMore 状态（假设后端返回了20条或更多）
+    const container = document.getElementById('card-container');
+    if (container) {
+        const initialCount = container.querySelectorAll('.card-wrapper').length;
+        hasMore = initialCount >= PAGE_SIZE;
+    }
+
+    // 如果页面上有旧内容按钮，说明有受限内容
+    if (document.getElementById('get-old-cards-btn')) {
+        hasOlderCards = true;
     }
 
     // 监听滚动加载 / 触发旧内容密码提示
@@ -370,12 +356,19 @@ function getCardHtml(card) {
         </div>`;
 }
 
-async function refreshCards(showOld = false) {
+async function refreshCards(showOldArg = null) {
     if (isLoading) return;
     isLoading = true;
 
+    // 如果 showOldArg 是布尔值，则更新状态（通常来自解锁成功）
+    if (typeof showOldArg === 'boolean') {
+        oldContentLoaded = showOldArg;
+    }
+
+    // 使用当前解锁状态进行请求
+    const showOld = oldContentLoaded;
+
     if (showOld) {
-        oldContentLoaded = true;
         const btn = document.getElementById('get-old-cards-btn');
         if (btn) btn.style.display = 'none';
     }
