@@ -412,7 +412,16 @@ async function refreshCards(showOldArg = null) {
 
 // 快速筛选功能
 function filterCards() {
-    const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+    // 获取当前可见的搜索框（可能是桌面端的或者是手机端的）
+    const searchInputs = document.querySelectorAll('.search-input');
+    let activeInput = null;
+    for (let input of searchInputs) {
+        if (input.offsetParent !== null) {
+            activeInput = input;
+            break;
+        }
+    }
+    const query = (activeInput?.value || '').toLowerCase();
     const cards = document.querySelectorAll('.card-wrapper');
     
     cards.forEach(card => {

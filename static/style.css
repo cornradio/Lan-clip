@@ -628,19 +628,23 @@ a:hover {
     flex: 1;
     max-width: 400px;
     position: relative;
-    display: flex;
+    display: flex !important;
     align-items: center;
-    background: rgba(128, 128, 128, 0.1);
+    background: var(--input-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-radius: 20px;
     padding: 0 15px;
-    height: 38px;
+    height: 40px;
     border: 1px solid var(--input-border);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .search-container:focus-within {
-    background: rgba(128, 128, 128, 0.15);
-    border-color: rgba(128, 128, 128, 0.3);
+    background: var(--txtbg-color);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     max-width: 500px;
 }
 
@@ -663,9 +667,21 @@ a:hover {
     opacity: 0.5;
 }
 
+.mobile-only {
+    display: none !important;
+}
+
 @media (max-width: 600px) {
-    .search-container {
-        display: none;
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
+        max-width: 100%;
+        margin-bottom: 12px;
+        width: 100%;
+        box-sizing: border-box;
     }
 }
 

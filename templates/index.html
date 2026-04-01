@@ -62,9 +62,9 @@
                 </div>
                 <span class="title">LAN Clip</span>
             </div>
-            <div class="search-container">
+            <div class="search-container desktop-only">
                 <i class="fas fa-search"></i>
-                <input type="text" id="search-input" placeholder="搜索内容..." oninput="filterCards()">
+                <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
             </div>
             <div class="banner-right">
                 <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button"
@@ -107,6 +107,11 @@
         </div>
         <!-- 输入区域 -->
         <div class="input-form">
+            <!-- 手机端搜索框 -->
+            <div class="search-container mobile-only">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
+            </div>
             <div class="input-container">
                 <textarea id="input-text" name="text" placeholder="键入文本或粘贴图片..."></textarea>
                 <div class="button-group">
