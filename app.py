@@ -155,6 +155,16 @@ def load_cards():
         print(f"加载卡片出错: {str(e)}")
         return []
 
+def process_text_content(content):
+    if not content:
+        return content
+    # 如果内容看起来已经包含 HTML 标签（特别是卡片结构），就不再处理，防止破坏结构
+    if '<div' in content or '<img' in content or '<a ' in content or '<script' in content:
+        return content
+    # 使用正则表达式匹配所有链接
+    content = re.sub(r'(https?://[^\s]+)', r'<a href="\1" target="_blank">\1</a>', content)
+    return content
+
 def save_card(content, timestamp=None):
     global cards_cache
     try:
@@ -200,8 +210,9 @@ def home():
     if request.method == 'POST':
         new_text = request.form.get('text', '')
         if new_text:
-            save_card(new_text)
-            log_action("HOME_POST", f"添加文本: {new_text[:50]}...")
+            processed_text = process_text_content(new_text)
+            save_card(processed_text)
+            log_action("HOME_POST", f"添加文本: {processed_text[:50]}...")
             # 重新加载以更新缓存
     has_restricted = len(cards_cache) > len(get_filtered_cards(cards_cache, force_show_all=False))
     return render_template('index.html', 
@@ -387,12 +398,13 @@ def add_card():
         content = request.json.get('text', '')
         timestamp = request.json.get('timestamp')
         if content:
-            # ... existing comments ...
-            new_id = save_card(content, timestamp=timestamp)
+            # 自动处理 URL 链接
+            processed_content = process_text_content(content)
+            new_id = save_card(processed_content, timestamp=timestamp)
             if new_id:
                 load_cards() # Ensure sorting is updated
-                log_action("API_ADD_CARD", f"ID: {new_id}, 内容: {content[:30]}...")
-                return jsonify({'status': 'success', 'content': content, 'id': str(new_id)})
+                log_action("API_ADD_CARD", f"ID: {new_id}, 内容: {processed_content[:30]}...")
+                return jsonify({'status': 'success', 'content': processed_content, 'id': str(new_id)})
         return jsonify({'status': 'error', 'message': '内容为空'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
