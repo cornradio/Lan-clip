@@ -2,7 +2,10 @@ import os
 import sys
 import shutil
 import re
-from flask import Flask, render_template, request, send_from_directory, jsonify, url_for
+import zipfile
+import io
+import time
+from flask import Flask, render_template, request, send_from_directory, jsonify, url_for, Response, send_file
 import webbrowser
 import glob
 from werkzeug.utils import secure_filename
@@ -132,7 +135,7 @@ def load_cards():
             card_id = os.path.splitext(os.path.basename(card_file))[0]
             mtime = os.path.getmtime(card_file)
             time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
-            with open(card_file, 'r', encoding='utf-8') as f:
+            with open(card_file, 'r', encoding='utf-8', newline='') as f:
                 cards.append({
                     'id': card_id,
                     'content': f.read().strip(),
@@ -158,6 +161,10 @@ def load_cards():
 def process_text_content(content):
     if not content:
         return content
+    
+    # 统一换行符，防止 Windows 下出现双重换行
+    content = content.replace('\r\n', '\n').replace('\r', '\n')
+    
     # 如果内容看起来已经包含 HTML 标签（特别是卡片结构），就不再处理，防止破坏结构
     if '<div' in content or '<img' in content or '<a ' in content or '<script' in content:
         return content
@@ -177,7 +184,7 @@ def save_card(content, timestamp=None):
             next_num = max(ids) + 1
             
         file_path = os.path.join(CARDS_DIR, f'{next_num}.txt')
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8', newline='') as f:
             f.write(content)
         
         # 如果提供了时间戳，设置文件的修改时间
@@ -469,6 +476,53 @@ def unpin_card():
             log_action("UNPIN_CARD", f"ID: {card_id}")
             load_cards() # 更新缓存
         return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/export')
+def export_content():
+    # 导出内容：打包 cards.json, images/, uploads/
+    try:
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # 打包卡片数据
+            if os.path.exists(CARDS_FILE):
+                 zf.write(CARDS_FILE, 'cards.json')
+            # 打包图片文件夹
+            if os.path.exists('images'):
+                for root, dirs, files in os.walk('images'):
+                    for file in files:
+                        zf.write(os.path.join(root, file))
+            # 打包上传文件夹
+            if os.path.exists('uploads'):
+                for root, dirs, files in os.walk('uploads'):
+                    for file in files:
+                        zf.write(os.path.join(root, file))
+        memory_file.seek(0)
+        filename = f"lan_clip_package_{int(time.time())}.zip"
+        return send_file(memory_file, download_name=filename, as_attachment=True)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/import', methods=['POST'])
+def import_content():
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': '没有上传文件'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': '未选择文件'}), 400
+    
+    try:
+        # 解压 ZIP 到当前目录
+        with zipfile.ZipFile(file, 'r') as zf:
+            zf.extractall('.')
+        
+        # 强制重新加载缓存
+        global cards_cache
+        cards_cache = load_cards()
+        log_action("IMPORT_CONTENT", "内容已成功从 ZIP 导入")
+        return jsonify({'status': 'success', 'message': '导入成功'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

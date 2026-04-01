@@ -65,6 +65,28 @@
             <div class="search-container desktop-only">
                 <i class="fas fa-search"></i>
                 <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
+                <div class="filter-dropdown">
+                    <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)" title="内容筛选">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
+                            <i class="fas fa-border-all"></i>全部内容
+                        </div>
+                        <div class="dropdown-item" data-type="text" onclick="setTypeFilter('text')">
+                            <i class="fas fa-font"></i>纯文本
+                        </div>
+                        <div class="dropdown-item" data-type="link" onclick="setTypeFilter('link')">
+                            <i class="fas fa-link"></i>链接
+                        </div>
+                        <div class="dropdown-item" data-type="image" onclick="setTypeFilter('image')">
+                            <i class="fas fa-image"></i>图片视频
+                        </div>
+                        <div class="dropdown-item" data-type="file" onclick="setTypeFilter('file')">
+                            <i class="fas fa-file-alt"></i>附件/文件
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="banner-right">
                 <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button"
@@ -111,6 +133,28 @@
             <div class="search-container mobile-only">
                 <i class="fas fa-search"></i>
                 <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
+                <div class="filter-dropdown">
+                    <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
+                            <i class="fas fa-border-all"></i>全部
+                        </div>
+                        <div class="dropdown-item" data-type="text" onclick="setTypeFilter('text')">
+                            <i class="fas fa-font"></i>文本
+                        </div>
+                        <div class="dropdown-item" data-type="link" onclick="setTypeFilter('link')">
+                            <i class="fas fa-link"></i>链接
+                        </div>
+                        <div class="dropdown-item" data-type="image" onclick="setTypeFilter('image')">
+                            <i class="fas fa-image"></i>图/影
+                        </div>
+                        <div class="dropdown-item" data-type="file" onclick="setTypeFilter('file')">
+                            <i class="fas fa-file-alt"></i>附件
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="input-container">
                 <textarea id="input-text" name="text" placeholder="键入文本或粘贴图片..."></textarea>
@@ -181,6 +225,13 @@
             <i class="fas fa-history"></i> 获取 3 天前的内容
         </button>
         {% endif %}
+
+        <!-- 搜索更多区域 -->
+        <div id="search-more-container" style="display: none; padding: 20px; text-align: center; width: 100%; max-width: 800px; margin: 0 auto;">
+            <button onclick="loadAllForSearch()" class="btn-block secondary" style="max-width: 300px; margin: 0 auto; background: rgba(var(--primary-rgb, 0, 122, 255), 0.1);">
+                <i class="fas fa-search-plus"></i> <span id="search-more-text">未找到内容？搜索全部结果</span>
+            </button>
+        </div>
 
         <div id="main-loader"
             style="text-align: center; padding: 20px; display: none; color: var(--text-color); opacity: 0.6;">
@@ -335,6 +386,19 @@
                         <button onclick="toggleTips()" class="btn-block secondary">
                             <i class="fas fa-lightbulb"></i> <span id="tips-toggle-text">查看快捷键与操作提示</span>
                         </button>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>数据管理</h4>
+                        <div style="display: flex; gap: 10px; flex-direction: column;">
+                            <button onclick="exportContent()" class="btn-block">
+                                <i class="fas fa-file-export"></i> 导出整体数据包 (.zip)
+                            </button>
+                            <label class="btn-block" style="cursor: pointer;">
+                                <i class="fas fa-file-import"></i> 导入/恢复数据包 (.zip)
+                                <input type="file" id="import-input" style="display: none;" accept=".zip" onchange="importContent(this)">
+                            </label>
+                        </div>
                     </div>
 
                     <div id="tips-container" style="display: none;">

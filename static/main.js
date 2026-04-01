@@ -29,6 +29,7 @@ function toggleFullscreenInput() {
 }
 
 const ADMIN_PWD_KEY = 'adminPassword';
+let currentTypeFilter = 'all';
 
 // 验证密码
 async function verifyPassword(inputPwd) {
@@ -429,15 +430,101 @@ function filterCards() {
         if (!contentElement) return;
         
         const text = contentElement.textContent.toLowerCase();
-        if (text.includes(query)) {
+        const matchesQuery = text.includes(query);
+
+        let matchesType = true;
+        if (currentTypeFilter !== 'all') {
+            const hasImg = card.querySelector('img, video');
+            const hasLink = card.querySelector('a');
+            const hasFile = card.querySelector('.file-card');
+            
+            if (currentTypeFilter === 'image') matchesType = !!hasImg;
+            else if (currentTypeFilter === 'link') matchesType = !!hasLink;
+            else if (currentTypeFilter === 'file') matchesType = !!hasFile;
+            else if (currentTypeFilter === 'text') {
+                // 仅文本：没有图片、没有外链、没有附件
+                matchesType = !hasImg && !hasLink && !hasFile;
+            }
+        }
+
+        if (matchesQuery && matchesType) {
             card.style.display = '';
         } else {
             card.style.display = 'none';
         }
     });
+
+    // 优化：如果在搜索且还有更多数据未加载，显示“搜索全部”按钮
+    const searchMoreContainer = document.getElementById('search-more-container');
+    if (searchMoreContainer) {
+        if ((query.trim() !== '' || currentTypeFilter !== 'all') && hasMore) {
+            searchMoreContainer.style.display = 'block';
+        } else {
+            searchMoreContainer.style.display = 'none';
+        }
+    }
 }
 
-async function loadMoreCards(showOld = false) {
+function toggleFilterMenu(event) {
+    event.stopPropagation();
+    const dropdowns = document.querySelectorAll('.dropdown-content');
+    const currentDropdown = event.currentTarget.nextElementSibling;
+    
+    // 关闭其他已打开的下拉菜单
+    dropdowns.forEach(d => {
+        if (d !== currentDropdown) d.classList.remove('show');
+    });
+    
+    currentDropdown.classList.toggle('show');
+}
+
+function setTypeFilter(type) {
+    currentTypeFilter = type;
+    
+    // 更新所有相关的 UI 表现
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        if (item.getAttribute('data-type') === type) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    // 更新切换按钮的激活状态
+    document.querySelectorAll('.filter-toggle-btn').forEach(btn => {
+        if (type !== 'all') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // 关闭下拉菜单
+    document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+    
+    filterCards();
+}
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', function() {
+    document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show'));
+});
+
+async function loadAllForSearch() {
+    const btnText = document.getElementById('search-more-text');
+    if (btnText) btnText.textContent = '正在获取全部数据...';
+    
+    // 一次性加载极大量数据进行全文筛选
+    await loadMoreCards(hasOlderCards, 9999);
+    
+    if (btnText) {
+        btnText.textContent = hasMore ? '加载了更多结果' : '已获得全部结果';
+    }
+    // 重新运行筛选
+    filterCards();
+}
+
+async function loadMoreCards(showOld = false, customSize = null) {
     if (isLoading) return;
     isLoading = true;
 
@@ -445,7 +532,8 @@ async function loadMoreCards(showOld = false) {
     if (loader) loader.style.display = 'block';
 
     try {
-        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${PAGE_SIZE}&show_old=${showOld}`, {
+        const fetchSize = customSize || PAGE_SIZE;
+        const response = await fetch(`/api/cards?page=${currentPage + 1}&size=${fetchSize}&show_old=${showOld}`, {
             headers: getAuthHeaders()
         });
         const data = await response.json();
@@ -2285,4 +2373,34 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 3500);
+}
+
+// 导出与导入逻辑
+function exportContent() {
+    window.location.href = '/api/export';
+}
+
+async function importContent(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    showNotification('正在导入数据，请稍候...', 'info');
+    try {
+        const response = await fetch('/api/import', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            showNotification('导入成功，即将重新加载...', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('导入失败: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Import Error:', error);
+        showNotification('导入过程中出错，请检查压缩包。', 'error');
+    }
 }
