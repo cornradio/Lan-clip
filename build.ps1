@@ -97,6 +97,7 @@ if ($response -eq 'y') {
     Write-Host "Running Windows Build Script..."
     if (Test-Path "build-script\build-win.bat") {
         cmd /c "build-script\build-win.bat"
+        copy "traymode.vbs" "dist\lan-clip\traymode.vbs"
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Windows build successful." -ForegroundColor Green
         } else {
