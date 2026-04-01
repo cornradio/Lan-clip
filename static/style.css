@@ -764,6 +764,7 @@ a:hover {
         margin-bottom: 12px;
         width: 100%;
         box-sizing: border-box;
+        z-index: 100; /* 确保下拉菜单不被下方的输入框遮挡 */
     }
 }
 

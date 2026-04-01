@@ -143,23 +143,35 @@ class ClipboardMonitor:
 
                         size_str = self._format_size(size_bytes)
                         file_name = os.path.basename(file_path)
+                        ext = os.path.splitext(file_name)[1].lower()
                         
                         with open(file_path, 'rb') as f:
-                            files = {'file': (file_name, f)}
-                            up_resp = requests.post(self.api_upload_file, files=files, timeout=30)
-                            if up_resp.status_code == 200:
-                                file_url = up_resp.text
-                                ext = os.path.splitext(file_name)[1].lower()
-                                html = ""
-                                if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
-                                    html += f'<img src="{file_url}" alt="{file_name}" style="max-width: 100%; height: auto; border-radius: 8px;" /><br/>'
-                                
-                                html += f'''<div class="file-card">
-                                    <i class="fas fa-file" style="margin-right: 8px;"></i>
-                                    <a href="{file_url}" target="_blank">{file_name}</a>
-                                    <span class="file-info" style="margin-left: 8px;">({size_str})</span>
-                                </div>'''
-                                requests.post(self.api_add_card, json={'text': html})
+                            # 关键修复：如果是图片，直接调用图片上传接口，以解决 WebView2 预览显示问题
+                            if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                                files = {'image': (file_name, f)}
+                                up_resp = requests.post(self.api_upload_image, files=files, timeout=30)
+                                if up_resp.status_code == 200:
+                                    img_url = up_resp.text
+                                    html = f'''<div class="image-card">
+                                        <img src="{img_url}" alt="{file_name}" style="max-width: 100%; height: auto; border-radius: 8px;">
+                                        <div class="image-info">
+                                            <i class="fas fa-image" style="margin-right: 4px;"></i>
+                                            <span>{file_name} ({size_str}) [从本地复制]</span>
+                                        </div>
+                                    </div>'''
+                                    requests.post(self.api_add_card, json={'text': html})
+                            else:
+                                # 普通文件走文件通道
+                                files = {'file': (file_name, f)}
+                                up_resp = requests.post(self.api_upload_file, files=files, timeout=30)
+                                if up_resp.status_code == 200:
+                                    file_url = up_resp.text
+                                    html = f'''<div class="file-card">
+                                        <i class="fas fa-file" style="margin-right: 8px;"></i>
+                                        <a href="{file_url}" target="_blank">{file_name}</a>
+                                        <span class="file-info" style="margin-left: 8px;">({size_str})</span>
+                                    </div>'''
+                                    requests.post(self.api_add_card, json={'text': html})
 
             else:
                 text = pyperclip.paste()
