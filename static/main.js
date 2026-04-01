@@ -1556,11 +1556,7 @@ function showPrevImage() {
     modalImage.src = imageList[currentImageIndex];
     currentImageNumber.textContent = currentImageIndex + 1;
 
-    // 添加过渡动画
-    modalImage.style.opacity = '0';
-    setTimeout(() => {
-        modalImage.style.opacity = '1';
-    }, 50);
+
 }
 
 // 修改showNextImage函数
@@ -1574,11 +1570,7 @@ function showNextImage() {
     modalImage.src = imageList[currentImageIndex];
     currentImageNumber.textContent = currentImageIndex + 1;
 
-    // 添加过渡动画
-    modalImage.style.opacity = '0';
-    setTimeout(() => {
-        modalImage.style.opacity = '1';
-    }, 50);
+
 }
 
 // 修改closeImageModal函数

@@ -1,11 +1,24 @@
-import pystray
-from pystray import MenuItem as item, Menu
-from PIL import Image, ImageDraw
 import os
 import webbrowser
 import threading
 import sys
 import json
+from PIL import Image, ImageDraw
+
+try:
+    if sys.platform == 'win32':
+        import pystray
+        from pystray import MenuItem as item, Menu
+    else:
+        # 非 Windows 环境 (如 Docker) 提供空 Mock
+        pystray = None
+        item = None
+        Menu = None
+except ImportError:
+    pystray = None
+    item = None
+    Menu = None
+
 from clipboard_service import ClipboardMonitor
 
 # 配置文件路径
