@@ -621,6 +621,52 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 15px;
+}
+
+.search-container {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 20px;
+    padding: 0 15px;
+    height: 38px;
+    border: 1px solid var(--input-border);
+    transition: all 0.3s ease;
+}
+
+.search-container:focus-within {
+    background: rgba(128, 128, 128, 0.15);
+    border-color: rgba(128, 128, 128, 0.3);
+    max-width: 500px;
+}
+
+.search-container i {
+    opacity: 0.5;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.search-container input {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    width: 100%;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-container input::placeholder {
+    opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+    .search-container {
+        display: none;
+    }
 }
 
 .banner-left {

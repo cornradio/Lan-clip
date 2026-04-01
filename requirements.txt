@@ -4,3 +4,6 @@ pillow
 pystray
 Waitress
 qrcode
+pyperclip
+requests
+pywin32

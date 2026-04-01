@@ -11,6 +11,8 @@ import time
 import auth_service
 import json
 import net_utils
+import tray_manager
+import threading
 
 PINNED_FILE = 'pinned.json'
 PERMISSION_LOCK_FILE = 'perm_lock.json'
@@ -461,15 +463,29 @@ def unpin_card():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')
     parser.add_argument('--port', type=int, default=port, help='Port number to run the app on.')
+    parser.add_argument('--tray', action='store_true', help='开启系统托盘模式')
     args = parser.parse_args()
     
     port = args.port
     
-    # app.run(host='0.0.0.0', port=port, debug=False)
     from waitress import serve
-    print(f"Server running on http://localhost:{port}")
-    net_utils.display_server_info(port)
-    serve(app, host="0.0.0.0", port=port)
+    
+    def start_server():
+        print(f"Server running on http://localhost:{port}")
+        net_utils.display_server_info(port)
+        serve(app, host="0.0.0.0", port=port)
+
+    if args.tray:
+        # 托盘模式：在后台线程启动服务器
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        
+        # 启动托盘图标（主线程阻塞在此处）
+        icon_path = resource_path(os.path.join('static', 'lizard.png'))
+        tray_manager.start_tray(port, icon_path)
+    else:
+        # 普通模式
+        start_server()
 
 # debug
 # flask run --debug --host=0.0.0.0 --port 5000

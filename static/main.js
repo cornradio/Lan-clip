@@ -410,6 +410,24 @@ async function refreshCards(showOldArg = null) {
     }
 }
 
+// 快速筛选功能
+function filterCards() {
+    const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const cards = document.querySelectorAll('.card-wrapper');
+    
+    cards.forEach(card => {
+        const contentElement = card.querySelector('.card-content');
+        if (!contentElement) return;
+        
+        const text = contentElement.textContent.toLowerCase();
+        if (text.includes(query)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
 async function loadMoreCards(showOld = false) {
     if (isLoading) return;
     isLoading = true;
