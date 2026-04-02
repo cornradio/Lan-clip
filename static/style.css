@@ -289,11 +289,13 @@ body.simple-mode .card-header .icon-button:hover {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    
-    max-height: 33vh;
     overflow: hidden;
     position: relative;
     transition: max-height 0.3s ease-out;
+}
+
+.card-content.needs-collapse:not(.expanded) {
+    max-height: 33vh;
 }
 
 .expand-toggle-btn {
@@ -332,7 +334,7 @@ body.simple-mode .card-header .icon-button:hover {
 }
 
 /* 长内容的渐变阴影指示器 */
-.card-content:not(.expanded).is-overflowing::after {
+.card-content.needs-collapse:not(.expanded).is-overflowing::after {
     content: '';
     position: absolute;
     bottom: 0;

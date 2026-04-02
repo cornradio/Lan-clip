@@ -1728,15 +1728,24 @@ document.addEventListener('click', function(e) {
 
 // 检测内容溢出的辅助函数
 function checkOverflow() {
+    const screenHeight = window.innerHeight;
+
     document.querySelectorAll('.card-content').forEach(content => {
         const wrapper = content.closest('.card-wrapper');
         let toggleBtn = wrapper.querySelector('.expand-toggle-btn');
 
+        // 判断原内容实际高度是否大于整个屏幕的高度
+        if (content.scrollHeight > screenHeight) {
+            content.classList.add('needs-collapse');
+        } else {
+            content.classList.remove('needs-collapse');
+        }
+
         if (!content.classList.contains('expanded')) {
-            // 注意：这里用 > 1 是因为 padding 和 1/3 计算可能有微小像素差异
+            // 当内容被折叠且带有 needs-collapse 时，出现展开按钮
             const isOverflowing = content.scrollHeight > content.clientHeight + 5;
             
-            if (isOverflowing) {
+            if (isOverflowing && content.classList.contains('needs-collapse')) {
                 content.classList.add('is-overflowing');
                 // 添加展开按钮如果不存在的话
                 if (!toggleBtn) {
@@ -1750,10 +1759,12 @@ function checkOverflow() {
                 content.classList.remove('is-overflowing');
                 if (toggleBtn) toggleBtn.style.display = 'none';
             }
-        } else if (toggleBtn) {
+        } else if (toggleBtn && content.classList.contains('needs-collapse')) {
              // 如果已经展开，确保按钮显示为"收起" (应对重新检测)
              toggleBtn.style.display = 'flex';
              toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> 收起';
+        } else if (toggleBtn) {
+             toggleBtn.style.display = 'none';
         }
     });
 }
