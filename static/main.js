@@ -1944,26 +1944,50 @@ let highlightedCard = null;
 
 // Toggle highlight on a card
 // Toggle highlight on a card
-function highlightCard(card) {
+function highlightCard(card, smooth = true) {
     if (highlightedCard && highlightedCard !== card) {
+        if (!smooth) {
+            highlightedCard.style.transition = 'none';
+        }
         highlightedCard.classList.remove('highlight');
+        if (!smooth) {
+            const prevHC = highlightedCard;
+            requestAnimationFrame(() => {
+                if (prevHC) prevHC.style.transition = '';
+            });
+        }
     }
 
     if (card && document.body.contains(card)) {
         highlightedCard = card;
-        card.classList.add('highlight');
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        if (!smooth) {
+            // Disable CSS transition for instant visual feedback
+            const originalTransition = card.style.transition;
+            card.style.transition = 'none';
+            card.classList.add('highlight');
+            card.scrollIntoView({ behavior: 'auto', block: 'center' });
+            // Restore transition in next frame
+            requestAnimationFrame(() => {
+                card.style.transition = originalTransition;
+            });
+        } else {
+            card.classList.add('highlight');
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
         document.body.classList.add('highlight-mode-active');
     } else {
         highlightedCard = null;
         document.body.classList.remove('highlight-mode-active');
     }
 }
-// Enter highlight mode: highlight the first card
+// Enter highlight mode: highlight the first visible card
 function enterHighlightMode() {
-    const firstCard = document.querySelector('.card-wrapper');
-    if (firstCard) {
-        highlightCard(firstCard);
+    const cards = Array.from(document.querySelectorAll('.card-wrapper'));
+    const firstVisible = cards.find(c => c.style.display !== 'none');
+    if (firstVisible) {
+        highlightCard(firstVisible, false);
     } // else: no cards to highlight
 }
 
@@ -1992,12 +2016,25 @@ document.addEventListener('click', function (e) {
 
 
 document.addEventListener('keydown', function (e) {
-    if (!highlightedCard) return;
-
     // Ignore action keys if typing in input
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
+    if (!highlightedCard) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            enterHighlightMode();
+        }
+        return;
+    }
+
     switch (e.key) {
+        case 'Enter':
+            e.preventDefault();
+            const img = highlightedCard.querySelector('.card-content img');
+            if (img) {
+                showImageModal(img.src);
+            }
+            break;
         case 'ArrowUp':
             e.preventDefault();
             navigateCard('up');
@@ -2054,7 +2091,7 @@ function navigateCard(direction) {
     // Helper to find linear sibling
     const getSibling = (start, dir) => {
         let target = dir === 'prev' ? start.previousElementSibling : start.nextElementSibling;
-        while (target && !target.classList.contains('card-wrapper')) {
+        while (target && (!target.classList.contains('card-wrapper') || target.style.display === 'none')) {
             target = dir === 'prev' ? target.previousElementSibling : target.nextElementSibling;
         }
         return target;
@@ -2064,10 +2101,10 @@ function navigateCard(direction) {
         // List Mode: Up/Left -> Prev, Down/Right -> Next
         if (direction === 'up' || direction === 'left') {
             const target = getSibling(highlightedCard, 'prev');
-            if (target) highlightCard(target);
+            if (target) highlightCard(target, false);
         } else {
             const target = getSibling(highlightedCard, 'next');
-            if (target) highlightCard(target);
+            if (target) highlightCard(target, false);
         }
         return;
     }
@@ -2075,10 +2112,10 @@ function navigateCard(direction) {
     // Grid Mode Logic
     if (direction === 'left') {
         const target = getSibling(highlightedCard, 'prev');
-        if (target) highlightCard(target);
+        if (target) highlightCard(target, false);
     } else if (direction === 'right') {
         const target = getSibling(highlightedCard, 'next');
-        if (target) highlightCard(target);
+        if (target) highlightCard(target, false);
     } else if (direction === 'up' || direction === 'down') {
         findGridVisibleNeighbor(highlightedCard, direction);
     }
@@ -2092,6 +2129,7 @@ function findGridVisibleNeighbor(current, direction) {
     // Filter candidates
     const candidates = cards.filter(c => {
         if (c === current) return false;
+        if (c.style.display === 'none') return false;
         const r = c.getBoundingClientRect();
 
         // Use a small buffer to handle slight misalignments
@@ -2158,7 +2196,7 @@ function findGridVisibleNeighbor(current, direction) {
         });
     }
 
-    if (bestCandidate) highlightCard(bestCandidate);
+    if (bestCandidate) highlightCard(bestCandidate, false);
 }
 
 
