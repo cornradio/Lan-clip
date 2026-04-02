@@ -1619,18 +1619,8 @@ function showImageModal(imageSrc) {
         }
     });
 
-    // 键盘快捷键
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closeImageModal();
-        } else if (e.key === 'o' && (e.ctrlKey || e.metaKey)) {
-            openImageInNewTab();
-        } else if (e.key === 'ArrowLeft') {
-            showPrevImage();
-        } else if (e.key === 'ArrowRight') {
-            showNextImage();
-        }
-    });
+    // 键盘快捷键使用全局单一监听，不要在此重复添加，否则会堆叠监听器导致性能问题。
+    // 已将相关的 esc, left, right 逻辑通过全局 keydown 统一处理。
 }
 
 // 修改showPrevImage函数
@@ -2019,6 +2009,30 @@ document.addEventListener('keydown', function (e) {
     // Ignore action keys if typing in input
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
+    // 先处理大图模态框逻辑 (无论有没有高亮卡片都要处理，因为大图模式下可能没有“选中”状态)
+    const imageModal = document.getElementById('image-modal');
+    const isImageModalOpen = imageModal && imageModal.style.display === 'block';
+
+    if (isImageModalOpen) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeImageModal();
+            return;
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            showPrevImage();
+            return;
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            showNextImage();
+            return;
+        } else if (e.key === 'o' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            openImageInNewTab();
+            return;
+        }
+    }
+
     if (!highlightedCard) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -2077,7 +2091,17 @@ document.addEventListener('keydown', function (e) {
             break;
         case 'Escape':
             e.preventDefault();
-            highlightCard(null);
+            // 如果有设置模态框或图册模态框打开，优先关闭它们
+            const settingsModal = document.getElementById('settings-modal');
+            const galleryModal = document.getElementById('gallery-modal');
+            if (settingsModal && settingsModal.style.display === 'block') {
+                closeSettings();
+            } else if (galleryModal && galleryModal.style.display === 'block') {
+                closeGallery();
+            } else {
+                // 只有在这些模态框都关闭的情况下，才退出选中模式
+                highlightCard(null);
+            }
             break;
     }
 });
