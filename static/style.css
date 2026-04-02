@@ -270,6 +270,7 @@ body.simple-mode .card-header .icon-button:hover {
     color: var(--text-color);
     opacity: 0.5;
     pointer-events: none;
+    z-index: 10;
 }
 
 
@@ -288,6 +289,59 @@ body.simple-mode .card-header .icon-button:hover {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    
+    max-height: 33vh;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.3s ease-out;
+}
+
+.expand-toggle-btn {
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    padding: 4px 16px;
+    color: var(--text-color);
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.expand-toggle-btn:hover {
+    background: var(--txtbg-color);
+}
+
+.expand-toggle-btn i {
+    font-size: 11px;
+}
+
+.card-content.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+/* 长内容的渐变阴影指示器 */
+.card-content:not(.expanded).is-overflowing::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: linear-gradient(transparent, var(--txtbg-color));
+    pointer-events: none;
+    z-index: 5;
 }
 
 .raw-button {

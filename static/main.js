@@ -1712,7 +1712,73 @@ function openImageInNewTab() {
     }
 }
 
-// 下载当前预览的图片
+// 内容展开逻辑 - 使用专门的按钮而不是点击整个内容框
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('expand-toggle-btn') || e.target.closest('.expand-toggle-btn')) {
+        const btn = e.target.closest('.expand-toggle-btn');
+        const content = btn.closest('.card-wrapper').querySelector('.card-content');
+        if (content) {
+            content.classList.toggle('expanded');
+            btn.innerHTML = content.classList.contains('expanded') 
+                ? '<i class="fas fa-chevron-up"></i> 收起' 
+                : '<i class="fas fa-chevron-down"></i> 展开全部';
+        }
+    }
+});
+
+// 检测内容溢出的辅助函数
+function checkOverflow() {
+    document.querySelectorAll('.card-content').forEach(content => {
+        const wrapper = content.closest('.card-wrapper');
+        let toggleBtn = wrapper.querySelector('.expand-toggle-btn');
+
+        if (!content.classList.contains('expanded')) {
+            // 注意：这里用 > 1 是因为 padding 和 1/3 计算可能有微小像素差异
+            const isOverflowing = content.scrollHeight > content.clientHeight + 5;
+            
+            if (isOverflowing) {
+                content.classList.add('is-overflowing');
+                // 添加展开按钮如果不存在的话
+                if (!toggleBtn) {
+                    toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'expand-toggle-btn';
+                    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> 展开全部';
+                    wrapper.appendChild(toggleBtn);
+                }
+                toggleBtn.style.display = 'flex';
+            } else {
+                content.classList.remove('is-overflowing');
+                if (toggleBtn) toggleBtn.style.display = 'none';
+            }
+        } else if (toggleBtn) {
+             // 如果已经展开，确保按钮显示为"收起" (应对重新检测)
+             toggleBtn.style.display = 'flex';
+             toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> 收起';
+        }
+    });
+}
+
+// 页面加载和滚动时检测溢出
+window.addEventListener('load', checkOverflow);
+window.addEventListener('resize', checkOverflow);
+
+// Intercept refresh functions to check overflow after DOM update
+const originalRefreshCards = window.refreshCards;
+if (originalRefreshCards) {
+    window.refreshCards = async function(...args) {
+        await originalRefreshCards.apply(this, args);
+        setTimeout(checkOverflow, 500); 
+    };
+}
+
+const originalLoadMoreCards = window.loadMoreCards;
+if (originalLoadMoreCards) {
+    window.loadMoreCards = async function(...args) {
+        await originalLoadMoreCards.apply(this, args);
+        setTimeout(checkOverflow, 500);
+    };
+}
+
 async function downloadCurrentImage() {
     const modalImage = document.getElementById('modal-image');
     if (!modalImage || !modalImage.src) return;
@@ -2044,9 +2110,17 @@ document.addEventListener('keydown', function (e) {
     switch (e.key) {
         case 'Enter':
             e.preventDefault();
-            const img = highlightedCard.querySelector('.card-content img');
+            const content = highlightedCard.querySelector('.card-content');
+            const img = content.querySelector('img');
+            const link = content.querySelector('a');
+            
             if (img) {
                 showImageModal(img.src);
+            } else if (link) {
+                window.open(link.href, '_blank');
+            } else {
+                // 如果是超长长内容，enter 键也可以执行展开/收起
+                content.classList.toggle('expanded');
             }
             break;
         case 'ArrowUp':
