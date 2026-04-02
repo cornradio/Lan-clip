@@ -14,7 +14,10 @@ import time
 import auth_service
 import json
 import net_utils
-import tray_manager
+if sys.platform == 'darwin':
+    import tray_manager_mac as tray_manager
+else:
+    import tray_manager
 import threading
 
 PINNED_FILE = 'pinned.json'
