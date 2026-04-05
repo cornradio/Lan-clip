@@ -1,5 +1,6 @@
 
-# LAN Clipboard - 局域网共享工具
+# LAN Clipboard
+> 局域网共享工具/剪切板监听工具
 
 <img width="2326" height="1642" alt="图片" src="https://github.com/user-attachments/assets/c0f2e568-2389-4b16-a6bc-8ee7aa888938" />
 
@@ -13,6 +14,24 @@
 - 全部删除密码：1230 （可在pwd.txt中修改）
 - 权限管理功能，置顶、编辑、删除帖子需要密码。（可在pwd.txt中修改）
 
+## 快捷键模式
+你会发现右上角有一个小鼠标，这是一个快捷键模式，可以点击按钮、或者在空白处按下方向下键开启。
+开启后会选中一个卡片，可以用方向键移动，c复制，enter打开链接/图片、d下载，Del删除。
+批量删除非常好用。不用鼠标瞄准去点按钮了。
+<img width="1713" height="1514" alt="image" src="https://github.com/user-attachments/assets/b624235e-e4c9-499d-84fb-e7e8d1c1f89e" />
+
+
+## 剪切板监听模式
+默认模式仅提供web功能，剪切板监听模式可以使用 --tray 参数启动。
+开启后会有一个绿色小蜥蜴出现在托盘上，右键开启监听即可自动把剪切板内容放到lan-clip中。
+- windows用户可以使用release中的traymode.vbs直接启动。
+- mac用户可以问问ai怎么写隐藏启动命令。自己写一个放到.zshrc文件中。
+- linux用户可能需要修改 tray_manager.py 并使用python源代码运行。因为我只有win和mac版本的测试过。
+
+<img width="465" height="242" alt="image" src="https://github.com/user-attachments/assets/6c2c8dc6-083f-4d6c-ad7d-d8b82636dcf3" />
+
+
+
 # 安装与启动
 1. Windows 桌面版
 
@@ -20,6 +39,7 @@
 
 2. Docker 部署（服务器）
 bash
+
 ## Docker Hub镜像
 ```bash
 # 基本启动
@@ -41,9 +61,10 @@ docker run -d -p 5000:5000 \
   kasusa/lan-clip:latest
 ```
 
-2. 源码运行（开发 / 调试）
+3. 源码运行
 ```
 python app.py
+python app.py --tray #剪切板监听模式
 ```
 
 ## 更新log
