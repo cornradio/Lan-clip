@@ -412,6 +412,33 @@ async function refreshCards(showOldArg = null) {
 }
 
 // 快速筛选功能
+let isLoadingAllData = false; // 是否正在加载全部数据用于筛选
+
+async function loadAllDataForFilter() {
+    if (isLoadingAllData) return;
+    isLoadingAllData = true;
+
+    const btnText = document.getElementById('search-more-text');
+    if (btnText) btnText.textContent = '正在获取全部数据...';
+
+    // 滚动到页面底部触发加载，循环直到加载全部数据
+    do {
+        // 滚动到页面底部
+        window.scrollTo(0, document.body.scrollHeight);
+        // 等待滚动完成和加载完成
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 再次滚动以防有新内容
+        window.scrollTo(0, document.body.scrollHeight);
+        await new Promise(resolve => setTimeout(resolve, 500));
+    } while (hasMore);
+
+    isLoadingAllData = false;
+    if (btnText) {
+        btnText.textContent = '已获得全部结果';
+    }
+}
+
 function filterCards() {
     // 获取当前可见的搜索框（可能是桌面端的或者是手机端的）
     const searchInputs = document.querySelectorAll('.search-input');
@@ -423,6 +450,30 @@ function filterCards() {
         }
     }
     const query = (activeInput?.value || '').toLowerCase();
+    const hasFilter = query.trim() !== '' || currentTypeFilter !== 'all';
+
+    // 更新筛选指示点状态
+    document.querySelectorAll('.filter-toggle-btn').forEach(btn => {
+        if (hasFilter) {
+            btn.classList.add('has-filter');
+        } else {
+            btn.classList.remove('has-filter');
+        }
+    });
+
+    // 如果有筛选条件且还有更多数据未加载，自动加载全部数据
+    if (hasFilter && hasMore && !isLoadingAllData) {
+        // 立即开始加载数据，加载完成后重新筛选
+        loadAllDataForFilter().then(() => {
+            filterCardsWithQuery(query);
+        });
+    }
+
+    // 执行筛选
+    filterCardsWithQuery(query);
+}
+
+function filterCardsWithQuery(query) {
     const cards = document.querySelectorAll('.card-wrapper');
     
     cards.forEach(card => {
@@ -494,8 +545,10 @@ function setTypeFilter(type) {
     document.querySelectorAll('.filter-toggle-btn').forEach(btn => {
         if (type !== 'all') {
             btn.classList.add('active');
+            btn.classList.add('has-filter');
         } else {
             btn.classList.remove('active');
+            btn.classList.remove('has-filter');
         }
     });
 
@@ -524,8 +577,11 @@ async function loadAllForSearch() {
     filterCards();
 }
 
-async function loadMoreCards(showOld = false, customSize = null) {
-    if (isLoading) return;
+async function loadMoreCards(showOld = false, customSize = null, onComplete = null) {
+    if (isLoading) {
+        if (onComplete) onComplete(hasMore);
+        return;
+    }
     isLoading = true;
 
     const loader = document.getElementById('main-loader');
@@ -555,6 +611,7 @@ async function loadMoreCards(showOld = false, customSize = null) {
     } finally {
         isLoading = false;
         if (loader) loader.style.display = 'none';
+        if (onComplete) onComplete(hasMore);
     }
 }
 
@@ -1041,14 +1098,22 @@ async function deleteCard(button) {
     // 防止重复点击
     if (cardWrapper.classList.contains('fade-out')) return;
 
-    // 如果删除的是当前高亮的卡片，尝试高亮下一张
+    // 如果删除的是当前高亮的卡片，尝试高亮下一张可见的卡片
     if (highlightedCard === cardWrapper) {
         let target = cardWrapper.nextElementSibling;
-        if (!target || !target.classList.contains('card-wrapper')) {
+        // 跳过不可见（被筛选隐藏）的卡片
+        while (target && (!target.classList.contains('card-wrapper') || target.style.display === 'none')) {
+            target = target.nextElementSibling;
+        }
+        // 如果没找到后面的，找前面的
+        if (!target) {
             target = cardWrapper.previousElementSibling;
+            while (target && (!target.classList.contains('card-wrapper') || target.style.display === 'none')) {
+                target = target.previousElementSibling;
+            }
         }
         if (target && target.classList.contains('card-wrapper')) {
-            highlightCard(target);
+            highlightCard(target, false);
         } else {
             highlightCard(null);
         }

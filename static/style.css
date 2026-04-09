@@ -747,6 +747,27 @@ a:hover {
     opacity: 1;
 }
 
+/* 筛选指示点 */
+.filter-toggle-btn {
+    position: relative;
+}
+
+.filter-toggle-btn .filter-dot {
+    display: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--link-color);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filter-toggle-btn.has-filter .filter-dot {
+    display: block;
+}
+
 .dropdown-content {
     display: none;
     position: absolute;
