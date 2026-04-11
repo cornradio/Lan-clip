@@ -25,10 +25,10 @@
 默认模式仅提供web功能，剪切板监听模式可以使用 --tray 参数启动。
 开启后会有一个绿色小蜥蜴出现在托盘上，右键开启监听即可自动把剪切板内容放到lan-clip中。
 - windows用户可以使用release中的traymode.vbs直接启动。
-- mac用户可以问问ai怎么写隐藏启动命令。自己写一个放到.zshrc文件中。
+- mac用户可以问问ai怎么写隐藏启动命令。自己写一个放到.zshrc文件中。例如:`alias lanclip="cd /Users/kasusa/Documents/GitHub/Lan-clip; nohup python3 app.py --tray > /dev/null 2>&1 &"`
 - linux用户可能需要修改 tray_manager.py 并使用python源代码运行。因为我只有win和mac版本的测试过。
 
-<img width="465" height="242" alt="image" src="https://github.com/user-attachments/assets/6c2c8dc6-083f-4d6c-ad7d-d8b82636dcf3" />
+<img width="210" height="214" alt="image" src="https://github.com/user-attachments/assets/5a0cb5d6-3ec6-4b1e-bad2-ca3cbf819159" />
 
 
 
