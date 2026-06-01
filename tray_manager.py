@@ -10,7 +10,7 @@ try:
         import pystray
         from pystray import MenuItem as item, Menu
     else:
-        # 非 Windows 环境 (如 Docker) 提供空 Mock
+        # Provide empty mocks for non-Windows environments (e.g. Docker)
         pystray = None
         item = None
         Menu = None
@@ -21,7 +21,7 @@ except ImportError:
 
 from clipboard_service import ClipboardMonitor
 
-# 配置文件路径
+# Config file path
 CONFIG_FILE = 'tray_config.json'
 
 class TrayManager:
@@ -31,20 +31,20 @@ class TrayManager:
         self.monitor = ClipboardMonitor(port)
         self.icon = None
         
-        # 加载配置
+        # Load config
         self.config = self._load_config()
         self._listener_enabled = self.config.get('listener_enabled', False)
         self._threshold_mb = self.config.get('threshold_mb', 10)
-        self._compress_enabled = self.config.get('compress_enabled', False) # 默认不压缩
-        
-        # 初始化监听器设置
+        self._compress_enabled = self.config.get('compress_enabled', False) # No compression by default
+
+        # Initialize monitor settings
         self.monitor.set_max_size(self._threshold_mb)
         self.monitor.set_compression(self._compress_enabled, 80)
         
         if self._listener_enabled:
             self.monitor.start()
 
-        # 图标缓存
+        # Icon cache
         self.base_image = self._load_base_image()
         self.active_image = self._create_active_image(self.base_image)
 
@@ -67,14 +67,14 @@ class TrayManager:
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(config, f)
         except Exception as e:
-            print(f"保存配置失败: {e}")
+            print(f"Failed to save config: {e}")
 
     def _load_base_image(self):
         try:
             img = Image.open(self.icon_path).convert('RGBA')
             return img.resize((64, 64))
         except Exception as e:
-            print(f"加载图标失败: {e}")
+            print(f"Failed to load icon: {e}")
             return Image.new('RGBA', (64, 64), (100, 100, 255, 255))
 
     def _create_active_image(self, base_img):
@@ -135,14 +135,14 @@ class TrayManager:
         os._exit(0)
 
     def run(self):
-        # 文件夹子菜单
+        # Folder submenu
         folder_menu = Menu(
-            item('Images 文件夹 (粘贴的图片)', self._open_folder('images')),
-            item('Uploads 文件夹 (文件/网页上传)', self._open_folder('uploads')),
-            item('项目根文件夹', self._open_folder('.'))
+            item('Images folder (pasted images)', self._open_folder('images')),
+            item('Uploads folder (file/web uploads)', self._open_folder('uploads')),
+            item('Project root folder', self._open_folder('.'))
         )
 
-        # 阈值子菜单
+        # Threshold submenu
         threshold_menu = Menu(
             item('5 MB', self._set_threshold(5), checked=lambda _: self._threshold_mb == 5),
             item('10 MB', self._set_threshold(10), checked=lambda _: self._threshold_mb == 10),
@@ -151,23 +151,23 @@ class TrayManager:
             item('100 MB', self._set_threshold(100), checked=lambda _: self._threshold_mb == 100),
         )
 
-        # 创建菜单
+        # Create menu
         menu = (
-            item('打开浏览器', self._open_browser),
-            item('浏览本地文件', folder_menu),
+            item('Open browser', self._open_browser),
+            item('Browse local files', folder_menu),
             Menu.SEPARATOR,
-            item('监听模式 (开启中 if 图标带绿点)', self._toggle_listener, checked=lambda item: self._listener_enabled),
-            item('开启剪贴板图片压缩 (80% 质量)', self._toggle_compression, checked=lambda item: self._compress_enabled),
-            item('同步阈值限制', threshold_menu),
+            item('Listening mode (on if icon has green dot)', self._toggle_listener, checked=lambda item: self._listener_enabled),
+            item('Enable clipboard image compression (80% quality)', self._toggle_compression, checked=lambda item: self._compress_enabled),
+            item('Sync threshold limit', threshold_menu),
             Menu.SEPARATOR,
-            item('退出', self._exit)
+            item('Exit', self._exit)
         )
 
-        # 创建托盘图标
+        # Create tray icon
         self.icon = pystray.Icon(
             "Lan-clip",
             self._get_current_icon(),
-            "Lan-clip 剪贴板同步",
+            "Lan-clip clipboard sync",
             menu
         )
 

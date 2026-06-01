@@ -6,7 +6,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 排除dist文件夹    
+# Exclude the dist folder
 COPY . . 
 
 ENV FLASK_APP=app.py

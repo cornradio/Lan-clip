@@ -2,7 +2,7 @@
 
 echo "Starting build process..."
 
-# 检查并安装依赖
+# Check and install dependencies
 echo "Installing dependencies..."
 if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
@@ -15,16 +15,16 @@ else
     fi
 fi
 
-# 开始构建
+# Start building
 echo "Building application..."
-# 添加 --noconsole 参数构建主应用
+# Build the main app with the --noconsole argument
 pyinstaller --name=LAN_clipboard_app --add-data "templates:templates" --add-data "static:static" app.py -y
 
-# 创建 ZIP 压缩包
+# Create a ZIP archive
 echo "Creating ZIP archive..."
 zip -r Lan_clipboard_app_macos_m1.zip dist/LAN_clipboard_app/*
 
-# 询问是否清理构建文件
+# Ask whether to clean up the build files
 read -p "Do you want to clean the build files? (y/n): " clean
 if [ "$clean" = "y" ]; then
     echo "Cleaning build files..."

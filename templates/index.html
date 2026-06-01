@@ -3,13 +3,13 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- 添加苹果快捷方式图标 -->
+    <!-- Add Apple shortcut icon -->
     <link rel="icon" href="{{ url_for('static', filename='lizard.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='liz2.png') }}" />
     <title>Lan-clip</title>
-    <!-- APP模式下，顶部空白处的颜色,可选为 default black black-translucent , default 使用 body 的背景色 -->
+    <!-- In APP mode, the color of the blank area at the top; options are default, black, black-translucent. "default" uses the body background color -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!--  App 名称，在用户选择添加到主页的时候这个名字会自动蹦出来 -->
+    <!--  App name; this name pops up automatically when the user chooses to add it to the home screen -->
     <meta name="apple-mobile-web-app-title" content="LanClip">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -64,27 +64,27 @@
             </div>
             <div class="search-container desktop-only">
                 <i class="fas fa-search"></i>
-                <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
+                <input type="text" class="search-input" placeholder="Search content..." oninput="filterCards()">
                 <div class="filter-dropdown">
-                    <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)" title="内容筛选">
+                    <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)" title="Filter content">
                         <i class="fas fa-filter"></i>
                         <span class="filter-dot"></span>
                     </button>
                     <div class="dropdown-content">
                         <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
-                            <i class="fas fa-border-all"></i>全部内容
+                            <i class="fas fa-border-all"></i>All content
                         </div>
                         <div class="dropdown-item" data-type="text" onclick="setTypeFilter('text')">
-                            <i class="fas fa-font"></i>纯文本
+                            <i class="fas fa-font"></i>Plain text
                         </div>
                         <div class="dropdown-item" data-type="link" onclick="setTypeFilter('link')">
-                            <i class="fas fa-link"></i>链接
+                            <i class="fas fa-link"></i>Links
                         </div>
                         <div class="dropdown-item" data-type="image" onclick="setTypeFilter('image')">
-                            <i class="fas fa-image"></i>图片视频
+                            <i class="fas fa-image"></i>Images &amp; videos
                         </div>
                         <div class="dropdown-item" data-type="file" onclick="setTypeFilter('file')">
-                            <i class="fas fa-file-alt"></i>附件/文件
+                            <i class="fas fa-file-alt"></i>Attachments/files
                         </div>
                     </div>
                 </div>
@@ -94,20 +94,20 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
-                <!-- todo，这个模式还在优化中 -->
-                <!-- <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button" title="切换视图"
+                <!-- todo: this mode is still being improved -->
+                <!-- <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button" title="Toggle view"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-border-all"></i>
                 </button> -->
-                <button onclick="enterHighlightMode()" class="icon-button" title="进入选中模式"
+                <button onclick="enterHighlightMode()" class="icon-button" title="Enter selection mode"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-mouse-pointer"></i>
                 </button>
-                <button onclick="showGallery()" class="icon-button" title="图册预览"
+                <button onclick="showGallery()" class="icon-button" title="Gallery preview"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-images"></i>
                 </button>
-                <button onclick="showSettings()" class="icon-button" title="设置" style="padding: 0;">
+                <button onclick="showSettings()" class="icon-button" title="Settings" style="padding: 0;">
                     <i class="fas fa-cog"></i>
                 </button>
                 <!-- <a href="https://github.com/cornradio/LANwebclipboard-win-flask/" target="_blank" class="github-button">
@@ -120,20 +120,20 @@
     <div class="body">
 
         <div id="background"></div>
-        <!-- 拖放区域 -->
+        <!-- Drop zone -->
         <div id="drop-zone"
             style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
             <div
                 style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px;">
-                拖放文件到这里上传
+                Drop files here to upload
             </div>
         </div>
-        <!-- 输入区域 -->
+        <!-- Input area -->
         <div class="input-form">
-            <!-- 手机端搜索框 -->
+            <!-- Mobile search box -->
             <div class="search-container mobile-only">
                 <i class="fas fa-search"></i>
-                <input type="text" class="search-input" placeholder="搜索内容..." oninput="filterCards()">
+                <input type="text" class="search-input" placeholder="Search content..." oninput="filterCards()">
                 <div class="filter-dropdown">
                     <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)">
                         <i class="fas fa-filter"></i>
@@ -141,44 +141,44 @@
                     </button>
                     <div class="dropdown-content">
                         <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
-                            <i class="fas fa-border-all"></i>全部
+                            <i class="fas fa-border-all"></i>All
                         </div>
                         <div class="dropdown-item" data-type="text" onclick="setTypeFilter('text')">
-                            <i class="fas fa-font"></i>文本
+                            <i class="fas fa-font"></i>Text
                         </div>
                         <div class="dropdown-item" data-type="link" onclick="setTypeFilter('link')">
-                            <i class="fas fa-link"></i>链接
+                            <i class="fas fa-link"></i>Links
                         </div>
                         <div class="dropdown-item" data-type="image" onclick="setTypeFilter('image')">
-                            <i class="fas fa-image"></i>图/影
+                            <i class="fas fa-image"></i>Media
                         </div>
                         <div class="dropdown-item" data-type="file" onclick="setTypeFilter('file')">
-                            <i class="fas fa-file-alt"></i>附件
+                            <i class="fas fa-file-alt"></i>Files
                         </div>
                     </div>
                 </div>
             </div>
             <div class="input-container">
-                <textarea id="input-text" name="text" placeholder="键入文本或粘贴图片..."></textarea>
+                <textarea id="input-text" name="text" placeholder="Type text or paste an image..."></textarea>
                 <div class="button-group">
-                    <button onclick="addCard()" id="add-btn" class="icon-button" title="添加">
+                    <button onclick="addCard()" id="add-btn" class="icon-button" title="Add">
                         <i class="fas fa-paper-plane"></i>
-                        <span style="margin-left: 5px;">发送</span>
+                        <span style="margin-left: 5px;">Send</span>
                     </button>
-                    <button onclick="refreshCards()" class="icon-button" title="刷新">
+                    <button onclick="refreshCards()" class="icon-button" title="Refresh">
                         <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button onclick="document.getElementById('file-input').click()" class="icon-button" title="上传图片">
+                    <button onclick="document.getElementById('file-input').click()" class="icon-button" title="Upload image">
                         <i class="fas fa-image"></i>
                         <input type="file" id="file-input" style="display: none;" accept="image/*" multiple
                             onchange="uploadImage(this.files); this.value='';">
                     </button>
-                    <button onclick="document.getElementById('file-input2').click()" class="icon-button" title="上传文件">
+                    <button onclick="document.getElementById('file-input2').click()" class="icon-button" title="Upload file">
                         <i class="fas fa-file-upload"></i>
                         <input type="file" id="file-input2" style="display: none;" accept="*" multiple
                             onchange="uploadFiles(this.files); this.value='';">
                     </button>
-                    <button onclick="toggleFullscreenInput()" id="fullscreen-btn" class="icon-button" title="全屏编辑"
+                    <button onclick="toggleFullscreenInput()" id="fullscreen-btn" class="icon-button" title="Fullscreen edit"
                         style="margin-left: auto;">
                         <i class="fas fa-expand"></i>
                     </button>
@@ -186,31 +186,31 @@
             </div>
         </div>
 
-        <!-- 卡片展示区域 -->
+        <!-- Card display area -->
         <div class="card" id="card-container">
             {% for card in cards[:20] %}
             <div class="card-wrapper {{ 'pinned' if card.pinned else '' }}" data-id="{{ card.id }}">
                 <div class="card-header">
                     <button onclick="togglePin(this)" class="icon-button raw-button pin2-button"
-                        title="{{ '取消置顶' if card.pinned else '置顶' }}" style="padding: 4px 8px; font-size: 12px;">
+                        title="{{ 'Unpin' if card.pinned else 'Pin' }}" style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-thumbtack"
                             style="{{ 'color: #ffd700; transform: rotate(45deg);' if card.pinned else '' }}"></i>
                     </button>
                     <button onclick="copyToClipboard(this)" class="icon-button raw-button download-button"
-                        title="复制到剪贴板" style="padding: 4px 8px; font-size: 12px;">
+                        title="Copy to clipboard" style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button onclick="editCard(this)" class="icon-button raw-button" title="编辑"
+                    <button onclick="editCard(this)" class="icon-button raw-button" title="Edit"
                         style="padding: 4px 8px; font-size: 12px;">
                         <i class="fas fa-edit"></i>
                     </button>
                     <!-- downloadbtn -->
                     <button onclick="downloadCard(this)" class="icon-button raw-button download-button"
-                        style="padding: 4px 8px; font-size: 12px;" title="下载">
+                        style="padding: 4px 8px; font-size: 12px;" title="Download">
                         <i class="fas fa-download"></i>
                     </button>
                     <button onclick="deleteCard(this)" class="icon-button raw-button delete-button"
-                        style="padding: 4px 8px; font-size: 12px;" title="删除">
+                        style="padding: 4px 8px; font-size: 12px;" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
 
@@ -224,31 +224,31 @@
         {% if has_restricted %}
         <button id="get-old-cards-btn" class="btn-block secondary" style="margin: 20px auto; max-width: 300px;"
             onclick="promptUnlockOldContent()">
-            <i class="fas fa-history"></i> 获取 3 天前的内容
+            <i class="fas fa-history"></i> Load content older than 3 days
         </button>
         {% endif %}
 
-        <!-- 搜索更多区域 -->
+        <!-- Search more area -->
         <div id="search-more-container" style="display: none; padding: 20px; text-align: center; width: 100%; max-width: 800px; margin: 0 auto;">
             <button onclick="loadAllForSearch()" class="btn-block secondary" style="max-width: 300px; margin: 0 auto; background: rgba(var(--primary-rgb, 0, 122, 255), 0.1);">
-                <i class="fas fa-search-plus"></i> <span id="search-more-text">未找到内容？搜索全部结果</span>
+                <i class="fas fa-search-plus"></i> <span id="search-more-text">Can't find it? Search all results</span>
             </button>
         </div>
 
         <div id="main-loader"
             style="text-align: center; padding: 20px; display: none; color: var(--text-color); opacity: 0.6;">
-            <i class="fas fa-spinner fa-spin"></i> 正在加载更多...
+            <i class="fas fa-spinner fa-spin"></i> Loading more...
         </div>
 
-        <!-- 上传进度模态窗 -->
+        <!-- Upload progress modal -->
         <div id="upload-modal" class="modal" style="display: none;">
             <div class="modal-content upload-modal-content">
                 <div class="modal-header">
-                    <h3>正在上传</h3>
+                    <h3>Uploading</h3>
                 </div>
                 <div class="modal-body">
                     <div id="upload-status-text" style="margin-bottom: 12px; color: var(--text-color);">
-                        正在准备上传...
+                        Preparing upload...
                     </div>
                     <div class="upload-progress-bar">
                         <div class="upload-progress-inner" id="upload-progress-inner"></div>
@@ -260,7 +260,7 @@
 
 
 
-        <!-- 修改图片预览模态窗 -->
+        <!-- Image preview modal -->
         <div id="image-modal" class="modal" style="display: none;">
             <div class="modal-content image-modal-content">
                 <div class="modal-header">
@@ -268,50 +268,50 @@
                         <span id="current-image-number">1</span>/<span id="total-images">1</span>
                     </div>
                     <div class="modal-actions">
-                        <button class="nav-button prev-button" onclick="showPrevImage()" title="上一张">
+                        <button class="nav-button prev-button" onclick="showPrevImage()" title="Previous">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button class="nav-button next-button" onclick="showNextImage()" title="下一张">
+                        <button class="nav-button next-button" onclick="showNextImage()" title="Next">
                             <i class="fas fa-chevron-right"></i>
                         </button>
-                        <button class="action-button" onclick="downloadCurrentImage()" title="下载当前图片">
+                        <button class="action-button" onclick="downloadCurrentImage()" title="Download current image">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-button" onclick="openImageInNewTab()" title="在新标签页中打开">
+                        <button class="action-button" onclick="openImageInNewTab()" title="Open in new tab">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
-                        <button class="close-button" onclick="closeImageModal()" title="关闭">
+                        <button class="close-button" onclick="closeImageModal()" title="Close">
                             <i class="fas fa-times"></i>
                         </button>
 
                     </div>
                 </div>
                 <div class="modal-body image-modal-body">
-                    <img id="modal-image" src="" alt="预览图片">
+                    <img id="modal-image" src="" alt="Image preview">
                 </div>
             </div>
         </div>
 
-        <!-- 图册预览模态窗 -->
+        <!-- Gallery preview modal -->
         <div id="gallery-modal" class="modal" style="display: none;">
             <div class="modal-content gallery-modal-content">
                 <div class="modal-header">
-                    <h3>图册预览</h3>
+                    <h3>Gallery Preview</h3>
                     <button class="close-button" onclick="closeGallery()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body gallery-grid" id="gallery-grid">
-                    <!-- 图片将通过JS动态加载 -->
+                    <!-- Images are loaded dynamically via JS -->
                 </div>
             </div>
         </div>
 
-        <!-- 添加设置模态窗 -->
+        <!-- Settings modal -->
         <div id="settings-modal" class="modal" style="display: none;">
             <div class="modal-content settings-modal-content">
                 <div class="modal-header">
-                    <h3>设置</h3>
+                    <h3>Settings</h3>
                     <button class="close-button" onclick="closeSettings()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -319,13 +319,13 @@
                 </div>
                 <div class="modal-body">
                     <div class="settings-section">
-                        <h4>显示设置</h4>
+                        <h4>Display Settings</h4>
                         <div class="setting-item">
                             <label class="switch">
                                 <input type="checkbox" id="simple-mode-toggle" onchange="toggleSimpleMode()">
                                 <span class="slider"></span>
                             </label>
-                            <span class="setting-label">简洁模式（隐藏背景图片）</span>
+                            <span class="setting-label">Simple mode (hide background image)</span>
                         </div>
 
                         <div class="setting-item">
@@ -334,28 +334,28 @@
                                     {{ 'checked' if permission_lock_enabled else '' }}>
                                 <span class="slider"></span>
                             </label>
-                            <span class="setting-label">权限管理（置顶/编辑/删除需要密码）</span>
+                            <span class="setting-label">Permission control (password required to pin/edit/delete)</span>
                         </div>
 
                         <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-                            <span class="setting-label">自定义背景图片文件夹</span>
+                            <span class="setting-label">Custom background image folder</span>
                             <div id="bg-preview-container"
                                 style="width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); display: none;">
                                 <img id="bg-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
                             <div style="display: flex; gap: 10px; width: 100%;">
                                 <button onclick="selectBackgroundFolder()" class="btn-block" style="flex: 1;">
-                                    <i class="fas fa-folder-open"></i> 选择文件夹
+                                    <i class="fas fa-folder-open"></i> Choose folder
                                 </button>
-                                <button onclick="nextBackground()" class="btn-block" style="width: 50px;" title="下一张">
+                                <button onclick="nextBackground()" class="btn-block" style="width: 50px;" title="Next">
                                     <i class="fas fa-step-forward"></i>
                                 </button>
                                 <button onclick="clearBackgroundFolder()" class="btn-block danger" style="width: 50px;"
-                                    title="清除/回复默认">
+                                    title="Clear / restore default">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                            <span id="bg-folder-info" style="font-size: 12px; opacity: 0.6;">(未选择自定义文件夹)</span>
+                            <span id="bg-folder-info" style="font-size: 12px; opacity: 0.6;">(No custom folder selected)</span>
                         </div>
 
                         <div class="setting-item">
@@ -363,7 +363,7 @@
                                 <input type="checkbox" id="clear-history-toggle" onchange="clearHistory()">
                                 <span class="slider"></span>
                             </label>
-                            <span class="setting-label">清空历史记录</span>
+                            <span class="setting-label">Clear history</span>
                         </div>
 
                         <div class="setting-item">
@@ -371,13 +371,13 @@
                                 <input type="checkbox" id="auto-compress-toggle" onchange="toggleAutoCompress()">
                                 <span class="slider"></span>
                             </label>
-                            <span class="setting-label">自动压缩图片</span>
+                            <span class="setting-label">Auto-compress images</span>
                         </div>
 
                         <div id="compression-quality-container" class="setting-item"
                             style="display: none; flex-direction: column; align-items: flex-start; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; width: 100%;">
-                                <span class="setting-label">压缩质量: <span id="quality-value">80</span>%</span>
+                                <span class="setting-label">Compression quality: <span id="quality-value">80</span>%</span>
                             </div>
                             <input type="range" id="compression-quality-slider" min="1" max="100" value="80"
                                 style="width: 100%;" oninput="updateCompressionQuality(this.value)">
@@ -386,18 +386,18 @@
 
                     <div class="settings-section">
                         <button onclick="toggleTips()" class="btn-block secondary">
-                            <i class="fas fa-lightbulb"></i> <span id="tips-toggle-text">查看快捷键与操作提示</span>
+                            <i class="fas fa-lightbulb"></i> <span id="tips-toggle-text">View shortcuts &amp; usage tips</span>
                         </button>
                     </div>
 
                     <div class="settings-section">
-                        <h4>数据管理</h4>
+                        <h4>Data Management</h4>
                         <div style="display: flex; gap: 10px; flex-direction: column;">
                             <button onclick="exportContent()" class="btn-block">
-                                <i class="fas fa-file-export"></i> 导出整体数据包 (.zip)
+                                <i class="fas fa-file-export"></i> Export full data package (.zip)
                             </button>
                             <label class="btn-block" style="cursor: pointer;">
-                                <i class="fas fa-file-import"></i> 导入/恢复数据包 (.zip)
+                                <i class="fas fa-file-import"></i> Import/restore data package (.zip)
                                 <input type="file" id="import-input" style="display: none;" accept=".zip" onchange="importContent(this)">
                             </label>
                         </div>
@@ -405,60 +405,60 @@
 
                     <div id="tips-container" style="display: none;">
                         <div class="settings-section">
-                            <h4>使用提示</h4>
+                            <h4>Usage Tips</h4>
                             <div class="tips-list">
                                 <div class="tip-item">
                                     <i class="fas fa-keyboard"></i>
-                                    <span>Ctrl+Enter 快速发送消息</span>
+                                    <span>Ctrl+Enter to send quickly</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-image"></i>
-                                    <span>点击图片可以查看大图</span>
+                                    <span>Click an image to view it larger</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-arrows-alt"></i>
-                                    <span>使用方向键切换图片</span>
+                                    <span>Use arrow keys to switch images</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-file-upload"></i>
-                                    <span>支持拖拽上传文件</span>
+                                    <span>Drag and drop to upload files</span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="settings-section">
-                            <h4>选中模式</h4>
+                            <h4>Selection Mode</h4>
                             <div class="tips-list">
                                 <div class="tip-item">
                                     <i class="fas fa-mouse-pointer"></i>
-                                    <span>双击卡片或点击顶部图标进入选中模式</span>
+                                    <span>Double-click a card or click the top icon to enter selection mode</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-arrows-alt"></i>
-                                    <span>方向键 ↑ ↓ ← → 切换选中卡片</span>
+                                    <span>Arrow keys ↑ ↓ ← → to move the selection</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-trash"></i>
-                                    <span>Delete / Backspace 删除选中卡片</span>
+                                    <span>Delete / Backspace to delete the selected card</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-copy"></i>
-                                    <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
+                                    <span>C to copy content / D to download attachment / E to edit content</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-times"></i>
-                                    <span>Esc 退出选中模式</span>
+                                    <span>Esc to exit selection mode</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="settings-section">
-                        <h4>关于</h4>
+                        <h4>About</h4>
                         <div class="about-links">
                             <a href="https://github.com/cornradio/LAN-clip" target="_blank" class="about-link">
                                 <i class="fab fa-github"></i>
-                                <span>GitHub 仓库</span>
+                                <span>GitHub repository</span>
                             </a>
                         </div>
                     </div>

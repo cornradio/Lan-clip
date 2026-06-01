@@ -1,15 +1,15 @@
-# 测试
+# Test
 
 flask run --debug --host=0.0.0.0
 
-# 打包
+# Build
 
-## 打包程序本体 win
+## Package the main app (Windows)
 ```
 pyinstaller --name=clipboard_app --add-data "templates;templates" --add-data "static;static" app.py -y
 ```
 
-## 打包程序本体 linux
+## Package the main app (Linux)
 ```
 pyinstaller --name=clipboard_app --add-data "templates:templates" --add-data "static:static" app.py -y
 ```
@@ -19,7 +19,7 @@ pyinstaller --name=clipboard_app --add-data "templates:templates" --add-data "st
 pyinstaller --name=apploader apploader.py -y
 ```
 
-## 打包后清理文件
+## Clean up files after packaging
 ```
 git clean -fdX
 ```
@@ -32,11 +32,11 @@ docker build -t kasusa/lan-clipboard-app:latest .
 docker tag kasusa/lan-clipboard-app:latest kasusa/lan-clipboard-app:20251229
 docker run -d -p 5000:5000 kasusa/lan-clipboard-app:latest
 docker login
-# 看到docker desktop 上面有头像算成功。
+# It's successful once you see your avatar in Docker Desktop.
 docker push kasusa/lan-clipboard-app:latest
 docker push kasusa/lan-clipboard-app:20251229
 ```
 
-使用 docker image pusher 发送到阿里云源
+Use docker image pusher to push to the Alibaba Cloud registry
 https://github.com/cornradio/docker_image_pusher/edit/main/images.txt
 https://github.com/cornradio/docker_image_pusher/actions

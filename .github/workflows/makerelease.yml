@@ -1,4 +1,4 @@
-# 按照最新的语言语法，完善这个githubaction编译脚本
+# Refine this GitHub Action build script using the latest syntax
 name: create a release 
 
 on:

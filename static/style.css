@@ -37,7 +37,7 @@ body {
     align-items: center;
 }
 
-/* 增加一些背景 */
+/* Add some background */
 
 #background {
     position: fixed;
@@ -205,7 +205,7 @@ a {
         0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-/* 简洁模式：关闭动效、弱化阴影、压缩图片高度、强化操作按钮 */
+/* Simple mode: disable animations, soften shadows, shrink image height, emphasize action buttons */
 body.simple-mode .body {
     padding-top: 12px;
 }
@@ -281,7 +281,7 @@ body.simple-mode .card-header .icon-button:hover {
     font-size: 15px;
     line-height: 1.5;
     color: var(--text-color);
-    /* background: transparent;卡片颜色 调黑了一点为了可读性 */
+    /* background: transparent; card color darkened a bit for readability */
     background-color: #0000001f;
     border: none;
     width: 100%;
@@ -333,7 +333,7 @@ body.simple-mode .card-header .icon-button:hover {
     overflow: visible;
 }
 
-/* 长内容的渐变阴影指示器 */
+/* Gradient fade indicator for long content */
 .card-content.needs-collapse:not(.expanded).is-overflowing::after {
     content: '';
     position: absolute;
@@ -407,7 +407,7 @@ body.simple-mode .card-header .icon-button:hover {
     }
 }
 
-/* 文件卡片样式 */
+/* File card styles */
 .file-card {
     display: inline-flex;
     align-items: center;
@@ -415,7 +415,7 @@ body.simple-mode .card-header .icon-button:hover {
     background-color: rgba(128, 128, 128, 0.1);
 }
 
-/* 文件信息样式 */
+/* File info styles */
 .file-info {
     font-size: 0.9em;
     color: var(--text-color);
@@ -423,7 +423,7 @@ body.simple-mode .card-header .icon-button:hover {
     margin-left: 8px;
 }
 
-/* 图片卡片样式 */
+/* Image card styles */
 .image-card {
     display: inline-flex;
     flex-direction: column;
@@ -445,7 +445,7 @@ body.simple-mode .card-header .icon-button:hover {
     color: var(--text-color);
 }
 
-/* 拖放区域样式 */
+/* Drop zone styles */
 #drop-zone {
     display: none;
     position: fixed;
@@ -457,13 +457,13 @@ body.simple-mode .card-header .icon-button:hover {
     z-index: 9999;
 }
 
-/* 图标样式 */
+/* Icon styles */
 .fas {
     color: var(--text-color);
     opacity: 0.8;
 }
 
-/* 主题变量 */
+/* Theme variables */
 [data-theme="dark"] {
     --text-color: #ffffff;
     --link-color: #58a6ff;
@@ -476,20 +476,20 @@ body.simple-mode .card-header .icon-button:hover {
     --icon-color: #666666;
 }
 
-/* 文件信息样式 */
+/* File info styles */
 .file-info {
     font-size: 0.9em;
     color: var(--text-color);
     opacity: 0.8;
 }
 
-/* 图标样式 */
+/* Icon styles */
 .fas {
     color: var(--icon-color);
     opacity: 0.8;
 }
 
-/* 链接样式 */
+/* Link styles */
 a {
     color: var(--link-color);
     text-decoration: none;
@@ -499,7 +499,7 @@ a:hover {
     text-decoration: underline;
 }
 
-/* 文件卡片样式 */
+/* File card styles */
 .file-card {
     display: inline-flex;
     align-items: center;
@@ -509,7 +509,7 @@ a:hover {
     background-color: rgba(var(--text-color-rgb), 0.05);
 }
 
-/* 图片卡片样式 */
+/* Image card styles */
 .image-card {
     display: inline-flex;
     flex-direction: column;
@@ -530,7 +530,7 @@ a:hover {
     color: var(--text-color);
 }
 
-/* 圆形按钮样式 */
+/* Round button styles */
 .github-button {
     margin-left: 16px;
     right: 0;
@@ -548,7 +548,7 @@ a:hover {
     background-color: #555;
 }
 
-/* 弹窗样式 */
+/* Modal styles */
 .modal {
     display: none;
     position: fixed;
@@ -634,7 +634,7 @@ a:hover {
     }
 }
 
-/* 添加滚动条样式 */
+/* Scrollbar styles */
 .modal-body::-webkit-scrollbar {
     width: 8px;
 }
@@ -653,7 +653,7 @@ a:hover {
     background: rgba(var(--text-color-rgb), 0.3);
 }
 
-/* Header样式优化 */
+/* Header style refinements */
 #banner {
     position: sticky;
     top: 0;
@@ -747,7 +747,7 @@ a:hover {
     opacity: 1;
 }
 
-/* 筛选指示点 */
+/* Filter indicator dot */
 .filter-toggle-btn {
     position: relative;
 }
@@ -841,7 +841,7 @@ a:hover {
         margin-bottom: 12px;
         width: 100%;
         box-sizing: border-box;
-        z-index: 100; /* 确保下拉菜单不被下方的输入框遮挡 */
+        z-index: 100; /* Ensure the dropdown menu is not covered by the input box below */
     }
 }
 
@@ -873,7 +873,7 @@ a:hover {
     align-items: center;
 }
 
-/* GitHub按钮样式优化 */
+/* GitHub button style refinements */
 .github-button {
     display: flex;
     align-items: center;
@@ -895,7 +895,7 @@ a:hover {
     font-size: 20px;
 }
 
-/* 响应式调整 */
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .body {
         padding: 12px;
@@ -929,7 +929,7 @@ a:hover {
 }
 
 
-/* 图片模态窗样式 */
+/* Image modal styles */
 #image-modal {
     z-index: 2000;
 }
@@ -960,7 +960,7 @@ a:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* 图片点击效果 */
+/* Image click effect */
 .card-content img {
     cursor: zoom-in;
     transition: transform 0.2s ease;
@@ -970,7 +970,7 @@ a:hover {
     transform: scale(1.02);
 }
 
-/* 图片模态窗动画 */
+/* Image modal animation */
 @keyframes imageModalFadeIn {
     from {
         opacity: 0;
@@ -987,7 +987,7 @@ a:hover {
     animation: imageModalFadeIn 0.3s ease;
 }
 
-/* 模态窗操作按钮样式 */
+/* Modal action button styles */
 .modal-actions {
     display: flex;
     gap: 4px;
@@ -1010,13 +1010,13 @@ a:hover {
     transform: translateY(-1px);
 }
 
-/* 调整关闭按钮样式以匹配 */
+/* Adjust close button style to match */
 .close-button {
     margin-left: 0;
-    /* 移除之前的左边距 */
+    /* Remove the previous left margin */
 }
 
-/* 图片导航按钮样式 */
+/* Image navigation button styles */
 .nav-button {
     background: rgba(0, 0, 0, 0.5);
     border: none;
@@ -1038,19 +1038,19 @@ a:hover {
     transform: scale(1.1);
 }
 
-/* 当图片数量为1时隐藏导航按钮 */
+/* Hide navigation buttons when there is only 1 image */
 .image-modal-body.single-image~.modal-header .nav-button {
     display: none;
 }
 
-/* 调整图片模态窗样式以适应导航按钮 */
+/* Adjust image modal styles to accommodate navigation buttons */
 .image-modal-body {
     position: relative;
     padding: 0;
-    /* 移除左右padding */
+    /* Remove left/right padding */
 }
 
-/* 图片计数器样式 */
+/* Image counter styles */
 .image-counter {
     font-size: 16px;
     color: var(--text-color);
@@ -1060,12 +1060,12 @@ a:hover {
     margin-right: auto;
 }
 
-/* 当只有一张图片时隐藏计数器 */
+/* Hide the counter when there is only one image */
 .image-modal-body.single-image~.modal-header .image-counter {
     display: none;
 }
 
-/* 设置模态窗样式 */
+/* Settings modal styles */
 .settings-modal-content {
     max-width: 500px;
 }
@@ -1093,7 +1093,7 @@ a:hover {
     font-size: 14px;
 }
 
-/* 开关样式 */
+/* Toggle switch styles */
 .switch {
     position: relative;
     display: inline-block;
@@ -1139,7 +1139,7 @@ input:checked+.slider:before {
     transform: translateX(20px);
 }
 
-/* 提示列表样式 */
+/* Tips list styles */
 .tips-list {
     display: flex;
     flex-direction: column;
@@ -1159,7 +1159,7 @@ input:checked+.slider:before {
     color: #2196F3;
 }
 
-/* 关于链接样式 */
+/* About link styles */
 .about-links {
     display: flex;
     flex-direction: column;
@@ -1187,7 +1187,7 @@ input:checked+.slider:before {
     font-size: 20px;
 }
 
-/* 图册预览样式 */
+/* Gallery preview styles */
 .gallery-modal-content {
     max-width: 95%;
     width: 95%;
@@ -1259,7 +1259,7 @@ input:checked+.slider:before {
     background: rgba(220, 53, 69, 1);
 }
 
-/* 上传进度模态窗样式 */
+/* Upload progress modal styles */
 .upload-modal-content {
     max-width: 420px;
 }
@@ -1334,7 +1334,7 @@ input:checked+.slider:before {
     box-shadow: 0 0 15px rgba(88, 166, 255, 0.3) !important;
 }
 
-/* 全屏输入模式 */
+/* Fullscreen input mode */
 .input-container.fullscreen {
     position: fixed;
     top: 0;
@@ -1366,7 +1366,7 @@ input:checked+.slider:before {
     margin-bottom: 10px;
 }
 
-/* 隐藏全屏模式下textarea的滚动条但允许滚�?*/
+/* Hide the textarea scrollbar in fullscreen mode but still allow scrolling */
 .input-container.fullscreen textarea::-webkit-scrollbar {
     display: none;
 }

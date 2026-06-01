@@ -2,10 +2,10 @@ import socket
 import qrcode
 
 def get_host_ips():
-    """获取本机所有的物理网卡内网 IPv4 和 IPv6 地址"""
+    """Get all internal IPv4 and IPv6 addresses of the machine's physical network adapters"""
     ips = []
     try:
-        # 尝试通过 UDP 检测主力 IP
+        # Try to detect the primary IP via UDP
         primary_ip = "127.0.0.1"
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -21,59 +21,59 @@ def get_host_ips():
         
         seen = set()
         
-        # 排除列表：常见的虚拟网卡、代理、回环段、无效的前缀
+        # Exclusion list: common virtual adapters, proxies, loopback ranges, invalid prefixes
         exclude_prefixes = (
             '127.', '169.254.', '198.18.', '172.17.', '172.18.', '172.19.', '172.20.',
             '44.', '100.64.', 'fe80:', '::1'
         )
         
-        # 用户提到的特定虚拟网段
+        # Specific virtual subnets mentioned by users
         exclude_specific = ('192.168.206.', '192.168.56.', '192.168.163.', '192.168.44.')
 
         for item in addr_info:
             family = item[0]
             addr = item[4][0]
             
-            # 基础过滤
+            # Basic filtering
             if any(addr.startswith(p) for p in exclude_prefixes):
                 continue
-            
-            # 虚拟网段过滤
+
+            # Virtual subnet filtering
             if any(addr.startswith(p) for p in exclude_specific):
-                # 如果这个 IP 碰巧是 primary_ip (比如当前真的在用这个网口)，则保留，否则过滤
+                # If this IP happens to be primary_ip (e.g. this adapter is actually in use), keep it; otherwise filter it out
                 if addr != primary_ip:
                     continue
 
             if addr not in seen:
                 if family == socket.AF_INET:
-                    # 将 primary_ip 放在列表最前面
+                    # Put primary_ip at the front of the list
                     if addr == primary_ip:
                         ips.insert(0, (addr, "IPv4"))
                     else:
                         ips.append((addr, "IPv4"))
                     seen.add(addr)
                 elif hasattr(socket, 'AF_INET6') and family == socket.AF_INET6:
-                    # 仅保留可能是公网/全局的 IPv6 (通常以 2 或 3 开头)
-                    # 如果 IPv6 无法连接，用户反馈连不上，这里可以做更严格的筛选
+                    # Only keep IPv6 addresses that are likely public/global (usually starting with 2 or 3)
+                    # If IPv6 cannot connect and users report connection failures, stricter filtering can be applied here
                     if addr.startswith('2') or addr.startswith('3'):
                         ips.append((addr, "IPv6"))
                         seen.add(addr)
                     
     except Exception as e:
-        print(f"获取 IP 地址时出错: {e}")
-    
-    # 如果没找到任何外部 IP，补一个 127.0.0.1
+        print(f"Error while getting IP addresses: {e}")
+
+    # If no external IP was found, fall back to 127.0.0.1
     if not ips:
         ips.append(("127.0.0.1", "IPv4"))
     
     return ips
 
 def display_server_info(port):
-    """在终端显示访问地址和二维码"""
+    """Display the access URL and QR code in the terminal"""
     ips = get_host_ips()
     
     print("\n" + "╔" + "═"*60 + "╗")
-    print(f"║  Lan-clip 服务已启动，监听端口: {port:<31} ║")
+    print(f"║  Lan-clip service started, listening on port: {port:<31} ║")
     print("╚" + "═"*60 + "╝")
     
     if not ips:
@@ -83,20 +83,20 @@ def display_server_info(port):
         if version == "IPv4":
             url = f"http://{ip}:{port}"
         else:
-            # IPv6 地址在 URL 中需要括号包裹
+            # IPv6 addresses need to be wrapped in brackets within a URL
             url = f"http://[{ip}]:{port}"
-            
-        print(f"\n▶ [{version}] 访问地址: {url}")
-        print("  手机扫码快速进入:")
-        
+
+        print(f"\n▶ [{version}] Access URL: {url}")
+        print("  Scan the QR code with your phone for quick access:")
+
         try:
-            # 使用二维码库打印到控制台
+            # Use the QR code library to print to the console
             qr = qrcode.QRCode(version=1, box_size=1, border=1)
             qr.add_data(url)
             qr.make(fit=True)
-            # 在某些终端下可能需要 invert=True 才能被扫码识别
+            # Some terminals may require invert=True for the QR code to be scannable
             qr.print_ascii(invert=True)
         except Exception as e:
-            print(f"  [!] 无法生成二维码: {e}")
+            print(f"  [!] Unable to generate QR code: {e}")
     
     print("\n" + "═"*62 + "\n")

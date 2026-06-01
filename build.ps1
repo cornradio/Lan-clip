@@ -1,4 +1,4 @@
-# Configuration (保持不变)
+# Configuration (unchanged)
 $IMAGE_NAME = "kasusa/lan-clip"
 $TAG = "latest"
 $FULL_IMAGE_NAME = "${IMAGE_NAME}:${TAG}"
@@ -9,12 +9,12 @@ Write-Host "   Lan-Clip Build & Deploy Script"
 Write-Host "=========================================="
 Write-Host ""
 
-# Set project root (保持不变)
+# Set project root (unchanged)
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $projectRoot
 Write-Host "Current working directory set to: $(Get-Location)" -ForegroundColor Yellow
 
-# Step 0: Cleanup (保持不变)
+# Step 0: Cleanup (unchanged)
 $response = Read-Host "Step 0: Cleanup temporary files and data (dist, build, cards, images, uploads)? [y/n]"
 if ($response -eq 'y') {
     $itemsToClean = @("dist", "build", "cards", "images", "uploads", "__pycache__")
@@ -30,7 +30,7 @@ if ($response -eq 'y') {
 
 Write-Host ""
 
-# Docker steps (保持不变)
+# Docker steps (unchanged)
 $runDockerSteps = $false
 $response = Read-Host "Step 1: Build Docker Image ($FULL_IMAGE_NAME)? [y/n]"
 if ($response -eq 'y') {
@@ -66,24 +66,24 @@ if ($runDockerSteps) {
 Write-Host ""
 
 # =================================================================
-# Step 4: Windows Build (通过 build-win.bat)
+# Step 4: Windows Build (via build-win.bat)
 # =================================================================
 
 $response = Read-Host "Step 4: Run Windows Build Script (build-win.bat)? [y/n]"
 if ($response -eq 'y') {
     Write-Host "Running Windows Build Script..."
 
-    # 使用绝对路径，避免 bat 脚本改变工作目录后路径失效
+    # Use an absolute path to avoid the path breaking after the bat script changes the working directory
     $buildScriptPath = Join-Path $projectRoot "build-script\build-win.bat"
 
-    # ==================== 调试信息 ====================
+    # ==================== Debug info ====================
     Write-Host "Current location before running batch: $(Get-Location)" -ForegroundColor Cyan
     Write-Host "Attempting to run batch script from: $buildScriptPath" -ForegroundColor Cyan
     # ====================================================
 
     if (Test-Path $buildScriptPath) {
 
-        # 执行 bat 前锁定工作目录，执行完自动恢复，防止 bat 内部 cd 污染后续路径
+        # Lock the working directory before running the bat and restore it afterwards, to prevent an internal cd in the bat from polluting subsequent paths
         Push-Location $projectRoot
         & $buildScriptPath
         $batchExitCode = $LASTEXITCODE
