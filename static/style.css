@@ -166,6 +166,92 @@ a {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Segmented refresh control: manual refresh + live-refresh toggle */
+.refresh-control {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    background-color: var(--input-bg);
+    overflow: hidden;
+}
+
+.refresh-control-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    padding: 0 16px;
+    transition: background-color 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.refresh-control-btn i {
+    font-size: 16px;
+}
+
+.refresh-control-btn:hover {
+    background-color: rgba(128, 128, 128, 0.18);
+}
+
+/* Manual refresh disabled while live refresh is on */
+.refresh-control-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.refresh-control-btn:disabled:hover {
+    background-color: transparent;
+}
+
+.refresh-control-divider {
+    width: 1px;
+    height: 55%;
+    background-color: var(--border-color);
+    flex: 0 0 auto;
+}
+
+/* Live-refresh toggle — gray (inactive) per theme */
+.live-refresh-btn {
+    color: var(--text-color);
+    opacity: 0.5;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    opacity: 0.6;
+    flex: 0 0 auto;
+}
+
+/* Live-refresh toggle — glowing green (active) */
+.live-refresh-btn.active {
+    opacity: 1;
+    color: #2ecc71;
+    text-shadow: 0 0 8px rgba(46, 204, 113, 0.85);
+}
+
+.live-refresh-btn.active .live-dot {
+    opacity: 1;
+    box-shadow: 0 0 6px 1px rgba(46, 204, 113, 0.9);
+    animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.65); opacity: 0.5; }
+}
+
 [data-theme="light"] #add-btn {
     background-color: #d3e3fd;
     color: #041e49;

@@ -94,6 +94,16 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
+                <div class="refresh-control" style="margin-right: 15px;">
+                    <button onclick="refreshCards()" id="manual-refresh-btn" class="refresh-control-btn" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <span class="refresh-control-divider"></span>
+                    <button onclick="toggleLiveRefresh()" id="live-refresh-btn" class="refresh-control-btn live-refresh-btn" title="Toggle live refresh">
+                        <span class="live-dot"></span>
+                        <span>Live refresh</span>
+                    </button>
+                </div>
                 <!-- todo: this mode is still being improved -->
                 <!-- <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button" title="Toggle view"
                     style="padding: 0; margin-right: 15px;">
@@ -164,9 +174,6 @@
                     <button onclick="addCard()" id="add-btn" class="icon-button" title="Add">
                         <i class="fas fa-paper-plane"></i>
                         <span style="margin-left: 5px;">Send</span>
-                    </button>
-                    <button onclick="refreshCards()" class="icon-button" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
                     </button>
                     <button onclick="document.getElementById('file-input').click()" class="icon-button" title="Upload image">
                         <i class="fas fa-image"></i>

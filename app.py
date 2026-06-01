@@ -46,6 +46,16 @@ def save_permission_lock(enabled):
 # Global variable tracking the permission lock state
 permission_lock_enabled = load_permission_lock()
 
+# Monotonic data revision, bumped on every mutation so clients can poll for changes (live refresh)
+_revision_lock = threading.Lock()
+data_revision = 0
+
+def bump_revision():
+    global data_revision
+    with _revision_lock:
+        data_revision += 1
+        return data_revision
+
 def is_authenticated():
     # Try to obtain the password from various sources
     password = request.headers.get('X-Admin-Password')
@@ -203,6 +213,7 @@ def save_card(content, timestamp=None):
             'timestamp': mtime
         }
         cards_cache = load_cards()
+        bump_revision()
         return next_num
     except Exception as e:
         print(f"Error saving card: {str(e)}")
@@ -266,6 +277,7 @@ def clear_history():
                 os.remove(os.path.join(UPLOAD_FOLDER, file))
 
         log_action("CLEAR_HISTORY", "Cleared all records and files")
+        bump_revision()
 
 
         return '', 204
@@ -316,7 +328,8 @@ def delete_card():
                 
                 log_action("DELETE_CARD", f"ID: {card_id}")
                 cards_cache = load_cards()
-                return jsonify({'status': 'success'})
+                bump_revision()
+                return jsonify({'status': 'success', 'rev': data_revision})
 
         return jsonify({'status': 'error', 'message': 'No matching card ID found'})
             
@@ -414,7 +427,7 @@ def add_card():
             if new_id:
                 load_cards() # Ensure sorting is updated
                 log_action("API_ADD_CARD", f"ID: {new_id}, content: {processed_content[:30]}...")
-                return jsonify({'status': 'success', 'content': processed_content, 'id': str(new_id)})
+                return jsonify({'status': 'success', 'content': processed_content, 'id': str(new_id), 'rev': data_revision})
         return jsonify({'status': 'error', 'message': 'Content is empty'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -459,7 +472,8 @@ def pin_card():
             save_pinned(pinned_ids)
             log_action("PIN_CARD", f"ID: {card_id}")
             load_cards() # Update the cache
-        return jsonify({'status': 'success'})
+            bump_revision()
+        return jsonify({'status': 'success', 'rev': data_revision})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -478,7 +492,8 @@ def unpin_card():
             save_pinned(pinned_ids)
             log_action("UNPIN_CARD", f"ID: {card_id}")
             load_cards() # Update the cache
-        return jsonify({'status': 'success'})
+            bump_revision()
+        return jsonify({'status': 'success', 'rev': data_revision})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -525,9 +540,15 @@ def import_content():
         global cards_cache
         cards_cache = load_cards()
         log_action("IMPORT_CONTENT", "Content successfully imported from ZIP")
+        bump_revision()
         return jsonify({'status': 'success', 'message': 'Import successful'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/revision', methods=['GET'])
+def get_revision():
+    # Lightweight endpoint clients poll to detect changes (live refresh)
+    return jsonify({'rev': data_revision})
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the LAN clipboard app.')

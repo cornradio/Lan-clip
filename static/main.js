@@ -919,6 +919,7 @@ async function uploadFiles(files) {
                         body: JSON.stringify({ text: fileLink })
                     });
                     const addResult = await addResponse.json();
+                    noteLocalRevision(addResult.rev);
 
                     // Add the new card directly on the frontend
                     addCardToPage(fileLink, addResult.id);
@@ -1150,6 +1151,7 @@ async function deleteCard(button) {
         }
 
         if (result.status === 'success') {
+            noteLocalRevision(result.rev);
             cardWrapper.remove();
         } else {
             throw new Error(result.message || 'Unknown error');
@@ -1194,6 +1196,7 @@ async function togglePin(button) {
         }
 
         if (data.status === 'success') {
+            noteLocalRevision(data.rev);
             const container = document.getElementById('card-container');
             if (isPinned) {
                 // Unpin
@@ -1374,6 +1377,7 @@ async function addCard() {
         const result = await response.json();
 
         if (result.status === 'success') {
+            noteLocalRevision(result.rev);
             // Create a new card
             const cardContainer = document.querySelector('.card');
             const newCard = document.createElement('div');
@@ -2616,3 +2620,91 @@ async function importContent(input) {
         showNotification('An error occurred during import, please check the archive.', 'error');
     }
 }
+
+// --- Live refresh (revision polling) ---
+// When enabled, periodically check the server's data revision. If another client
+// adds/removes/pins/clears/imports something, the revision changes and we reload the cards.
+let liveRefreshEnabled = false;
+let liveRefreshTimer = null;
+let lastKnownRevision = null;
+const LIVE_REFRESH_INTERVAL = 2000;
+
+// Record the revision returned by this client's own mutation, so the next poll
+// recognizes the change as ours and doesn't trigger a redundant self-refresh.
+function noteLocalRevision(rev) {
+    if (typeof rev === 'number') {
+        lastKnownRevision = rev;
+    }
+}
+
+async function fetchRevision() {
+    try {
+        const res = await fetch('/api/revision', { headers: getAuthHeaders() });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.rev;
+    } catch {
+        return null;
+    }
+}
+
+async function pollRevision() {
+    const rev = await fetchRevision();
+    if (rev === null) return;
+    if (lastKnownRevision === null) {
+        // First successful poll just establishes the baseline
+        lastKnownRevision = rev;
+        return;
+    }
+    if (rev !== lastKnownRevision) {
+        lastKnownRevision = rev;
+        // Something changed on the server — pull the latest cards
+        refreshCards();
+    }
+}
+
+function startLiveRefresh() {
+    if (liveRefreshTimer) return;
+    // Seed the baseline so enabling doesn't trigger an immediate refresh
+    fetchRevision().then(rev => { if (rev !== null) lastKnownRevision = rev; });
+    liveRefreshTimer = setInterval(pollRevision, LIVE_REFRESH_INTERVAL);
+}
+
+function stopLiveRefresh() {
+    if (liveRefreshTimer) {
+        clearInterval(liveRefreshTimer);
+        liveRefreshTimer = null;
+    }
+}
+
+function updateLiveRefreshUI() {
+    const btn = document.getElementById('live-refresh-btn');
+    if (btn) {
+        btn.classList.toggle('active', liveRefreshEnabled);
+        btn.title = liveRefreshEnabled ? 'Live refresh is on' : 'Live refresh is off';
+    }
+    // When live refresh is on, the manual refresh button is redundant — disable and gray it out
+    const manualBtn = document.getElementById('manual-refresh-btn');
+    if (manualBtn) {
+        manualBtn.disabled = liveRefreshEnabled;
+        manualBtn.title = liveRefreshEnabled ? 'Manual refresh disabled (live refresh is on)' : 'Refresh';
+    }
+}
+
+function toggleLiveRefresh() {
+    liveRefreshEnabled = !liveRefreshEnabled;
+    localStorage.setItem('liveRefresh', liveRefreshEnabled);
+    if (liveRefreshEnabled) startLiveRefresh();
+    else stopLiveRefresh();
+    updateLiveRefreshUI();
+    showNotification(liveRefreshEnabled ? 'Live refresh enabled' : 'Live refresh disabled',
+        liveRefreshEnabled ? 'success' : 'info');
+}
+
+function initLiveRefresh() {
+    liveRefreshEnabled = localStorage.getItem('liveRefresh') === 'true';
+    updateLiveRefreshUI();
+    if (liveRefreshEnabled) startLiveRefresh();
+}
+
+document.addEventListener('DOMContentLoaded', initLiveRefresh);
