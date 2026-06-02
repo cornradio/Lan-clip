@@ -14,11 +14,11 @@ Highlights
 - Delete-all password: 1230 (can be changed in pwd.txt)
 - Permission management: pinning, editing, and deleting posts require a password. (can be changed in pwd.txt)
 
-## Hotkey Mode
-You'll notice a small mouse icon in the top-right corner. This is the hotkey mode, which you can enable by clicking the button or pressing the Down arrow key in a blank area.
+## Shortcut Mode
+You'll notice a small panel selection icon in the top-right corner. This is shortcut mode, which you can enable by clicking the button or pressing the Down arrow key in a blank area.
 Once enabled, a card is selected. You can move with the arrow keys, c to copy, Enter to open the link/image, d to download, and Del to delete.
 Batch deletion is very handy. No more aiming the mouse to click buttons.
-<img width="1713" height="1514" alt="image" src="https://github.com/user-attachments/assets/b624235e-e4c9-499d-84fb-e7e8d1c1f89e" />
+<img width="1344" height="873" alt="Shortcut mode" src=".github/shortcut_mode_v1.jpg" />
 
 
 ## Clipboard Monitoring Mode

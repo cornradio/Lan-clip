@@ -2144,8 +2144,9 @@ document.addEventListener('click', function (e) {
         !e.target.classList.contains('temp-download-link')) {
 
         if (highlightedCard) {
-            highlightedCard.classList.remove('highlight');
-            highlightedCard = null;
+            // Clear via highlightCard(null) so the body 'highlight-mode-active'
+            // class is also removed and the selection-mode icon returns to neutral
+            highlightCard(null);
         }
     }
 });
@@ -2253,7 +2254,7 @@ document.addEventListener('keydown', function (e) {
             } else if (galleryModal && galleryModal.style.display === 'block') {
                 closeGallery();
             } else {
-                // Only exit selection mode when all of these modals are closed
+                // Only exit shortcut mode when all of these modals are closed
                 highlightCard(null);
             }
             break;
