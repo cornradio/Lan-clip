@@ -881,6 +881,45 @@ a:hover {
     max-width: 500px;
 }
 
+/* Banner search bar: centered between the logo group and the right-side icons,
+   with equal gaps on each side. The banner uses justify-content:space-between, so
+   by NOT letting the search flex-grow, the leftover space is split evenly into the
+   two gaps (logo->search and search->first right button). The icons sit at the
+   right edge. On focus the bar widens symmetrically into those equal margins. */
+.banner-wrap .search-container {
+    flex: 0 1 auto;
+    width: 400px;
+    max-width: none;
+}
+
+.banner-wrap .search-container:focus-within {
+    width: 500px;
+}
+
+/* Desktop: center the search bar at the banner's true horizontal center using a
+   3-column grid with equal 1fr side tracks. The logo sits at the left edge, the
+   icons at the right edge, and the search dead-center regardless of the two
+   groups' differing widths. Scoped to >=601px so the mobile banner (search hidden)
+   keeps its flex/space-between layout. */
+@media (min-width: 601px) {
+    .banner-wrap {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+    }
+
+    .banner-left {
+        justify-self: start;
+    }
+
+    .banner-wrap .search-container {
+        justify-self: center;
+    }
+
+    .banner-right {
+        justify-self: end;
+    }
+}
+
 .search-container i {
     opacity: 0.5;
     font-size: 14px;
