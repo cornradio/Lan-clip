@@ -179,7 +179,7 @@ body.highlight-mode-active .banner-right .clip-select-icon {
    of the centered 800px card-container. */
 .scroll-home-fab {
     position: fixed;
-    bottom: 20px;
+    bottom: 50px;
     right: 20px;
     z-index: 900;
     width: 48px;
@@ -197,14 +197,12 @@ body.highlight-mode-active .banner-right .clip-select-icon {
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(10px);
     transition: opacity 0.25s ease, transform 0.2s ease, visibility 0.25s ease, box-shadow 0.2s ease;
 }
 
 .scroll-home-fab.visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
 }
 
 .scroll-home-fab:hover {
