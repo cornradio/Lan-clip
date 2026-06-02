@@ -189,6 +189,7 @@ body.highlight-mode-active .banner-right .clip-select-icon {
     background: var(--txtbg-color);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+	background-color: rgb(190 218 255 / 16%);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
     color: var(--text-color);
     cursor: pointer;
