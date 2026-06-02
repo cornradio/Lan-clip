@@ -2666,8 +2666,13 @@ async function pollRevision() {
 
 function startLiveRefresh() {
     if (liveRefreshTimer) return;
-    // Seed the baseline so enabling doesn't trigger an immediate refresh
-    fetchRevision().then(rev => { if (rev !== null) lastKnownRevision = rev; });
+    // Immediately sync to the latest server state when enabling, then track from there.
+    // (Without the refresh, enabling would only seed the baseline to the current
+    // revision and silently miss anything other clients sent before it was turned on.)
+    fetchRevision().then(rev => {
+        if (rev !== null) lastKnownRevision = rev;
+        refreshCards();
+    });
     liveRefreshTimer = setInterval(pollRevision, LIVE_REFRESH_INTERVAL);
 }
 
