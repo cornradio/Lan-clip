@@ -2666,8 +2666,13 @@ async function pollRevision() {
 
 function startLiveRefresh() {
     if (liveRefreshTimer) return;
-    // Seed the baseline so enabling doesn't trigger an immediate refresh
-    fetchRevision().then(rev => { if (rev !== null) lastKnownRevision = rev; });
+    // Immediately sync to the latest server state when enabling, then track from there.
+    // (Without the refresh, enabling would only seed the baseline to the current
+    // revision and silently miss anything other clients sent before it was turned on.)
+    fetchRevision().then(rev => {
+        if (rev !== null) lastKnownRevision = rev;
+        refreshCards();
+    });
     liveRefreshTimer = setInterval(pollRevision, LIVE_REFRESH_INTERVAL);
 }
 
@@ -2709,3 +2714,17 @@ function initLiveRefresh() {
 }
 
 document.addEventListener('DOMContentLoaded', initLiveRefresh);
+
+// --- Floating scroll-to-home button: only visible once the page is scrolled down ---
+const SCROLL_HOME_THRESHOLD = 120;
+
+function updateScrollHomeFab() {
+    const fab = document.getElementById('scroll-home-fab');
+    if (!fab) return;
+    const scrolled = (window.scrollY || document.documentElement.scrollTop || 0) > SCROLL_HOME_THRESHOLD;
+    fab.classList.toggle('visible', scrolled);
+}
+
+window.addEventListener('scroll', updateScrollHomeFab, { passive: true });
+window.addEventListener('resize', updateScrollHomeFab);
+document.addEventListener('DOMContentLoaded', updateScrollHomeFab);

@@ -173,6 +173,63 @@ body.highlight-mode-active .banner-right .clip-select-icon {
     color: #8ab4f8;
 }
 
+/* Floating scroll-to-home button.
+   Hidden at the top of the page; the .visible class (toggled on scroll) reveals it.
+   Sits bottom-right on small screens; on wide screens it moves 30px to the right
+   of the centered 800px card-container. */
+.scroll-home-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 900;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--input-border);
+    background: var(--txtbg-color);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.2s ease, visibility 0.25s ease, box-shadow 0.2s ease;
+}
+
+.scroll-home-fab.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.scroll-home-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.scroll-home-icon {
+    display: inline-block;
+    width: 20px;
+    height: 22px;
+    background-color: currentColor;
+    -webkit-mask: url('/static/scroll_home.svg') no-repeat center / contain;
+    mask: url('/static/scroll_home.svg') no-repeat center / contain;
+}
+
+/* Enough horizontal room beside the centered 800px card: place it 30px to the card's right.
+   (50% + 400px card half-width + 30px gap = 50% + 430px) */
+@media (min-width: 980px) {
+    .scroll-home-fab {
+        right: auto;
+        left: calc(50% + 430px);
+    }
+}
+
 /* Tips list: match the blue sibling tip icons.
    The wide masked glyph fills its cell and centers, whereas the FontAwesome
    sibling glyphs sit left-aligned/narrower in their cells. A small optical
