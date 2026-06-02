@@ -2709,3 +2709,17 @@ function initLiveRefresh() {
 }
 
 document.addEventListener('DOMContentLoaded', initLiveRefresh);
+
+// --- Floating scroll-to-home button: only visible once the page is scrolled down ---
+const SCROLL_HOME_THRESHOLD = 120;
+
+function updateScrollHomeFab() {
+    const fab = document.getElementById('scroll-home-fab');
+    if (!fab) return;
+    const scrolled = (window.scrollY || document.documentElement.scrollTop || 0) > SCROLL_HOME_THRESHOLD;
+    fab.classList.toggle('visible', scrolled);
+}
+
+window.addEventListener('scroll', updateScrollHomeFab, { passive: true });
+window.addEventListener('resize', updateScrollHomeFab);
+document.addEventListener('DOMContentLoaded', updateScrollHomeFab);

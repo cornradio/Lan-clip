@@ -92,10 +92,6 @@
                 </div>
             </div>
             <div class="banner-right">
-                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button"
-                    style="padding: 0; margin-right: 15px;">
-                    <i class="fas fa-arrow-up"></i>
-                </button>
                 <div class="refresh-control" style="margin-right: 15px;">
                     <button onclick="refreshCards()" id="manual-refresh-btn" class="refresh-control-btn" title="Refresh">
                         <i class="fas fa-sync-alt"></i>
@@ -130,6 +126,12 @@
     </header>
 
     <div class="body">
+
+        <!-- Floating scroll-to-home button (shown only once scrolled down) -->
+        <button id="scroll-home-fab" class="scroll-home-fab" title="Scroll to top"
+            onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+            <span class="scroll-home-icon"></span>
+        </button>
 
         <div id="background"></div>
         <!-- Drop zone -->
