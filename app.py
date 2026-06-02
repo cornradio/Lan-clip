@@ -19,6 +19,11 @@ if sys.platform == 'darwin':
 else:
     import tray_manager
 import threading
+import mimetypes
+
+# Windows' registry can mis-map the .svg extension; force the correct MIME type
+# so SVGs are served as images (otherwise CSS masks/img won't render them)
+mimetypes.add_type('image/svg+xml', '.svg')
 
 PINNED_FILE = 'pinned.json'
 PERMISSION_LOCK_FILE = 'perm_lock.json'

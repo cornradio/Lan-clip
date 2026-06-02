@@ -28,6 +28,8 @@
             transition: all 0.2s;
             font-size: 14px;
             width: 100%;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .btn-block:hover {
@@ -109,9 +111,9 @@
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-border-all"></i>
                 </button> -->
-                <button onclick="enterHighlightMode()" class="icon-button" title="Enter selection mode"
+                <button onclick="enterHighlightMode()" class="icon-button" title="Enter shortcut mode"
                     style="padding: 0; margin-right: 15px;">
-                    <i class="fas fa-mouse-pointer"></i>
+                    <span class="clip-select-icon"></span>
                 </button>
                 <button onclick="showGallery()" class="icon-button" title="Gallery preview"
                     style="padding: 0; margin-right: 15px;">
@@ -403,10 +405,10 @@
                             <button onclick="exportContent()" class="btn-block">
                                 <i class="fas fa-file-export"></i> Export full data package (.zip)
                             </button>
-                            <label class="btn-block" style="cursor: pointer;">
+                            <button type="button" class="btn-block" onclick="document.getElementById('import-input').click()">
                                 <i class="fas fa-file-import"></i> Import/restore data package (.zip)
-                                <input type="file" id="import-input" style="display: none;" accept=".zip" onchange="importContent(this)">
-                            </label>
+                            </button>
+                            <input type="file" id="import-input" style="display: none;" accept=".zip" onchange="importContent(this)">
                         </div>
                     </div>
 
@@ -434,11 +436,11 @@
                         </div>
 
                         <div class="settings-section">
-                            <h4>Selection Mode</h4>
+                            <h4>Shortcut Mode</h4>
                             <div class="tips-list">
                                 <div class="tip-item">
-                                    <i class="fas fa-mouse-pointer"></i>
-                                    <span>Double-click a card or click the top icon to enter selection mode</span>
+                                    <span class="clip-select-icon"></span>
+                                    <span>Double-click a card or click the top icon to enter shortcut mode</span>
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-arrows-alt"></i>
@@ -454,7 +456,7 @@
                                 </div>
                                 <div class="tip-item">
                                     <i class="fas fa-times"></i>
-                                    <span>Esc to exit selection mode</span>
+                                    <span>Esc to exit shortcut mode</span>
                                 </div>
                             </div>
                         </div>

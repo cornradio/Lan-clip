@@ -150,6 +150,40 @@ a {
     transform: translateY(-1px);
 }
 
+/* SVG icon tinted to match its surroundings (uses currentColor via mask) */
+.clip-select-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: currentColor;
+    -webkit-mask: url('/static/ClipSelect.svg') no-repeat center / contain;
+    mask: url('/static/ClipSelect.svg') no-repeat center / contain;
+    transition: background-color 0.25s ease;
+}
+
+/* Menu bar: larger 35x35, gray (inherits icon-button's --text-color) */
+.banner-right .clip-select-icon {
+    width: 35px;
+    height: 35px;
+}
+
+/* While selection (highlight) mode is active, tint the menu-bar icon a faint blue.
+   Returns to the neutral --text-color when the mode is cleared. */
+body.highlight-mode-active .banner-right .clip-select-icon {
+    color: #8ab4f8;
+}
+
+/* Tips list: match the blue sibling tip icons.
+   The wide masked glyph fills its cell and centers, whereas the FontAwesome
+   sibling glyphs sit left-aligned/narrower in their cells. A small optical
+   left nudge aligns this icon's center with the rest of the column.
+   (position/left shifts only the icon, leaving the gap to the text intact.) */
+.tip-item .clip-select-icon {
+    color: #2196F3;
+    position: relative;
+    left: -2.6px;
+}
+
 #add-btn {
     background-color: #3b4759;
     color: #d2e3ff;
@@ -665,7 +699,7 @@ a:hover {
     align-items: center;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(75, 75, 75, 0.5);
     backdrop-filter: blur(8px);
 }
 
@@ -1154,6 +1188,42 @@ a:hover {
 /* Settings modal styles */
 .settings-modal-content {
     max-width: 500px;
+    /* Keep the panel within the viewport, leaving 50px of breathing room at the bottom.
+       Top margin (5vh) + max-height (95vh - 50px) => bottom edge sits 50px above screen bottom. */
+    margin: 5vh auto;
+    max-height: calc(95vh - 50px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* keep rounded corners while the body scrolls */
+}
+
+/* Let the settings body take the remaining height and scroll when content overflows */
+.settings-modal-content .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none; /* override the shared 100vh cap */
+    /* Dark scrollbar (Firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) rgba(0, 0, 0, 0.25);
+}
+
+/* Dark scrollbar (WebKit/Chromium) */
+.settings-modal-content .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-modal-content .modal-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+}
+
+.settings-modal-content .modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+}
+
+.settings-modal-content .modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45);
 }
 
 .settings-section {
