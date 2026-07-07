@@ -136,7 +136,6 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 // 清空历史记录
 async function clearHistory() {
     if (!confirm('确定要清空所有记录吗？此操作不可恢复！')) {
-        document.getElementById('clear-history-toggle').checked = false;
         return;
     }
 
@@ -150,7 +149,6 @@ async function clearHistory() {
     if (!success) {
         password = prompt('请输入管理员密码以进行清空:');
         if (!password) {
-            document.getElementById('clear-history-toggle').checked = false;
             return;
         }
         success = await executeClear(password);
@@ -172,13 +170,11 @@ async function executeClear(password) {
             return true;
         } else {
             showNotification('密码错误，操作已被拒绝', 'error');
-            document.getElementById('clear-history-toggle').checked = false;
             return false;
         }
     } catch (e) {
         console.error(e);
         showNotification('清空失败，请检查网络连接', 'error');
-        document.getElementById('clear-history-toggle').checked = false;
         return false;
     }
 }
@@ -275,12 +271,25 @@ function showGetOldCardsButton() {
     }
 }
 
+// 重新渲染页面上所有卡片的文本内容（用于页面加载后应用 markdown）
+function rerenderAllCards() {
+    document.querySelectorAll('.card-content').forEach(el => {
+        const raw = el.innerHTML;
+        if (!isSystemHtml(raw)) {
+            // 用 innerText 提取可见文本（兼容旧卡片中已自动链接的 URL）
+            const text = el.innerText;
+            el.innerHTML = renderCardMarkdown(text);
+        }
+    });
+}
+
 // 在页面加载时调用这两个函数
 window.onload = function () {
     loadTextFromLocalStorage();
     saveTextToLocalStorage();
     updateAllTimes();
     initGridMode();
+    rerenderAllCards();
 
     // 同步 cookie
     const initialPwd = localStorage.getItem(ADMIN_PWD_KEY);
@@ -352,7 +361,7 @@ function getCardHtml(card) {
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-            <pre class="card-content">${card.content}</pre>
+            <div class="card-content">${renderCardMarkdown(card.content)}</div>
             <div class="card-time" data-timestamp="${card.timestamp || ''}">${displayTime}</div>
         </div>`;
 }
@@ -389,9 +398,13 @@ async function refreshCards(showOldArg = null) {
         if (container) {
             container.innerHTML = '';
             data.cards.forEach(card => {
-                // 不再在前端硬编码过滤，完全交由后端根据 show_old 返回
                 container.insertAdjacentHTML('beforeend', getCardHtml(card));
             });
+
+            // 网格模式下刷新后重新插入新建卡片占位符
+            if (gridModeActive) {
+                addNewCardPlaceholder();
+            }
 
             currentPage = 1;
             hasMore = data.has_more;
@@ -412,33 +425,6 @@ async function refreshCards(showOldArg = null) {
 }
 
 // 快速筛选功能
-let isLoadingAllData = false; // 是否正在加载全部数据用于筛选
-
-async function loadAllDataForFilter() {
-    if (isLoadingAllData) return;
-    isLoadingAllData = true;
-
-    const btnText = document.getElementById('search-more-text');
-    if (btnText) btnText.textContent = '正在获取全部数据...';
-
-    // 滚动到页面底部触发加载，循环直到加载全部数据
-    do {
-        // 滚动到页面底部
-        window.scrollTo(0, document.body.scrollHeight);
-        // 等待滚动完成和加载完成
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 再次滚动以防有新内容
-        window.scrollTo(0, document.body.scrollHeight);
-        await new Promise(resolve => setTimeout(resolve, 500));
-    } while (hasMore);
-
-    isLoadingAllData = false;
-    if (btnText) {
-        btnText.textContent = '已获得全部结果';
-    }
-}
-
 function filterCards() {
     // 获取当前可见的搜索框（可能是桌面端的或者是手机端的）
     const searchInputs = document.querySelectorAll('.search-input');
@@ -450,30 +436,6 @@ function filterCards() {
         }
     }
     const query = (activeInput?.value || '').toLowerCase();
-    const hasFilter = query.trim() !== '' || currentTypeFilter !== 'all';
-
-    // 更新筛选指示点状态
-    document.querySelectorAll('.filter-toggle-btn').forEach(btn => {
-        if (hasFilter) {
-            btn.classList.add('has-filter');
-        } else {
-            btn.classList.remove('has-filter');
-        }
-    });
-
-    // 如果有筛选条件且还有更多数据未加载，自动加载全部数据
-    if (hasFilter && hasMore && !isLoadingAllData) {
-        // 立即开始加载数据，加载完成后重新筛选
-        loadAllDataForFilter().then(() => {
-            filterCardsWithQuery(query);
-        });
-    }
-
-    // 执行筛选
-    filterCardsWithQuery(query);
-}
-
-function filterCardsWithQuery(query) {
     const cards = document.querySelectorAll('.card-wrapper');
     
     cards.forEach(card => {
@@ -545,10 +507,8 @@ function setTypeFilter(type) {
     document.querySelectorAll('.filter-toggle-btn').forEach(btn => {
         if (type !== 'all') {
             btn.classList.add('active');
-            btn.classList.add('has-filter');
         } else {
             btn.classList.remove('active');
-            btn.classList.remove('has-filter');
         }
     });
 
@@ -577,11 +537,8 @@ async function loadAllForSearch() {
     filterCards();
 }
 
-async function loadMoreCards(showOld = false, customSize = null, onComplete = null) {
-    if (isLoading) {
-        if (onComplete) onComplete(hasMore);
-        return;
-    }
+async function loadMoreCards(showOld = false, customSize = null) {
+    if (isLoading) return;
     isLoading = true;
 
     const loader = document.getElementById('main-loader');
@@ -611,7 +568,6 @@ async function loadMoreCards(showOld = false, customSize = null, onComplete = nu
     } finally {
         isLoading = false;
         if (loader) loader.style.display = 'none';
-        if (onComplete) onComplete(hasMore);
     }
 }
 
@@ -671,6 +627,7 @@ document.addEventListener('paste', async function (e) {
 
     for (let item of items) {
         if (item.type.indexOf('image') !== -1) {
+            e.preventDefault(); // 阻止浏览器默认粘贴行为
             const file = item.getAsFile();
             const randomStr = Math.random().toString(36).substring(2, 8);
             const newFile = new File([file], `image_${randomStr}.png`, {
@@ -679,6 +636,7 @@ document.addEventListener('paste', async function (e) {
             });
             files.push(newFile);
         } else if (item.kind === 'file') {
+            e.preventDefault();
             const file = item.getAsFile();
             files.push(file);
         } else if (item.type === 'text/plain') {
@@ -834,10 +792,16 @@ async function uploadImage(files) {
                     </div>
                 </div>`;
 
-                // 为每个文件单独提交
-                const textarea = document.querySelector('textarea[name="text"]');
-                textarea.value = content;
-                document.querySelector('#add-btn').click();
+                // 使用 API 直接提交，兼容 list/grid 两种模式
+                const addResponse = await fetch('/api/add_card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: content })
+                });
+                const addResult = await addResponse.json();
+                if (addResult.status === 'success') {
+                    addCardToPage(content, addResult.id);
+                }
             }
 
             doneCount++;
@@ -969,13 +933,22 @@ function addCardToPage(fileLink, id) {
 
     const html = getCardHtml(card);
 
-    // 插入逻辑：插入到所有置顶卡片之后，或者容器的最前面
-    const lastPinned = Array.from(cardContainer.querySelectorAll('.card-wrapper.pinned')).pop();
-    if (lastPinned) {
-        lastPinned.insertAdjacentHTML('afterend', html);
+    // 网格模式：插入到新建卡片占位符之后
+    const gridNewCard = cardContainer.querySelector('.grid-new-card');
+    if (gridNewCard) {
+        gridNewCard.insertAdjacentHTML('afterend', html);
     } else {
-        cardContainer.insertAdjacentHTML('afterbegin', html);
+        // 列表模式：插入到置顶卡片之后，或容器最前面
+        const lastPinned = Array.from(cardContainer.querySelectorAll('.card-wrapper.pinned')).pop();
+        if (lastPinned) {
+            lastPinned.insertAdjacentHTML('afterend', html);
+        } else {
+            cardContainer.insertAdjacentHTML('afterbegin', html);
+        }
     }
+
+    // 新卡片加入后检测是否需要折叠
+    setTimeout(checkOverflow, 100);
 }
 
 function getCurrentFormattedTime() {
@@ -1073,7 +1046,7 @@ dropZone.addEventListener('dragleave', function (e) {
 async function editCard(button) {
     const cardWrapper = button.closest('.card-wrapper');
     const contentHtml = cardWrapper.querySelector('.card-content').innerHTML;
-    const isFileOrImage = contentHtml.includes('file-card') || contentHtml.includes('image-card') || contentHtml.includes('<img');
+    const isFileOrImage = contentHtml.includes('file-card') || contentHtml.includes('image-card');
 
     // 1. 将内容放入输入框
     // 对于文件/图片使用 innerHTML，对于纯文本为了编辑方便使用 innerText
@@ -1098,22 +1071,14 @@ async function deleteCard(button) {
     // 防止重复点击
     if (cardWrapper.classList.contains('fade-out')) return;
 
-    // 如果删除的是当前高亮的卡片，尝试高亮下一张可见的卡片
+    // 如果删除的是当前高亮的卡片，尝试高亮下一张
     if (highlightedCard === cardWrapper) {
         let target = cardWrapper.nextElementSibling;
-        // 跳过不可见（被筛选隐藏）的卡片
-        while (target && (!target.classList.contains('card-wrapper') || target.style.display === 'none')) {
-            target = target.nextElementSibling;
-        }
-        // 如果没找到后面的，找前面的
-        if (!target) {
+        if (!target || !target.classList.contains('card-wrapper')) {
             target = cardWrapper.previousElementSibling;
-            while (target && (!target.classList.contains('card-wrapper') || target.style.display === 'none')) {
-                target = target.previousElementSibling;
-            }
         }
         if (target && target.classList.contains('card-wrapper')) {
-            highlightCard(target, false);
+            highlightCard(target);
         } else {
             highlightCard(null);
         }
@@ -1342,14 +1307,57 @@ async function downloadCard(button) {
 
 // 处理输入
 function processInput(input) {
-    var outstr = input.trim();
-    // 如果内容看起来已经包含 HTML 标签（特别是我们的卡片结构），就不再处理，防止破坏结构
-    if (outstr.includes('<div') || outstr.includes('<img') || outstr.includes('<a ')) {
-        return outstr;
+    return input.trim();
+}
+
+// 粘贴并发送：输入框为空时读取剪贴板文本并发送
+async function pasteAndSend() {
+    const textarea = document.querySelector('#input-text');
+    if (textarea.value.trim()) {
+        // 输入框有内容，直接发送
+        addCard();
+        return;
     }
-    // 使用正则表达式匹配所有链接
-    outstr = outstr.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-    return outstr;
+    // 输入框为空，从剪贴板读取文本
+    try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+            textarea.value = text.trim();
+            addCard();
+        } else {
+            showNotification('剪贴板为空', 'warning');
+        }
+    } catch (err) {
+        showNotification('无法读取剪贴板（HTTP 环境限制）', 'error');
+    }
+}
+
+// HTML 转义（防止用户输入的 HTML 标签被渲染）
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 判断内容是否为系统生成的 HTML（图片/视频/文件卡片）
+// 系统生成的图片/视频永远包在 image-card 或 file-card div 内，不检测独立 <img>/<video>
+function isSystemHtml(content) {
+    return content.includes('image-card') || content.includes('file-card');
+}
+
+// 渲染卡片内容：纯文本走 markdown（HTML 被转义），系统 HTML 原样输出
+function renderCardMarkdown(content) {
+    if (!content) return '';
+    if (isSystemHtml(content)) return content;
+    // marked.js 可用时走 markdown 渲染
+    if (typeof marked !== 'undefined' && marked.parse) {
+        // 先转义 HTML，再处理 URL，最后交给 marked
+        let escaped = escapeHtml(content);
+        // 裸 URL 转为 markdown 链接（转义后 URL 本身不受影响）
+        let processed = escaped.replace(/(?<!\]\()(https?:\/\/[^\s]+)/g, '[$1]($1)');
+        return marked.parse(processed, { breaks: true, gfm: true });
+    }
+    // fallback：纯转义 + 保留换行
+    return escapeHtml(content).replace(/\n/g, '<br>');
 }
 
 async function addCard() {
@@ -1397,7 +1405,7 @@ async function addCard() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-                <pre class="card-content">${content}</pre>
+                <div class="card-content">${renderCardMarkdown(content)}</div>
                 <div class="card-time" data-timestamp="${timestamp}">${timeStr}</div>
             `;
 
@@ -1407,6 +1415,9 @@ async function addCard() {
             // 清空输入框 和历史记录
             textarea.value = '';
             localStorage.setItem('input-text-content', '');
+
+            // 新卡片加入后检测是否需要折叠
+            setTimeout(checkOverflow, 100);
         } else {
             console.error('添加失败:', result.message);
         }
@@ -1777,84 +1788,7 @@ function openImageInNewTab() {
     }
 }
 
-// 内容展开逻辑 - 使用专门的按钮而不是点击整个内容框
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('expand-toggle-btn') || e.target.closest('.expand-toggle-btn')) {
-        const btn = e.target.closest('.expand-toggle-btn');
-        const content = btn.closest('.card-wrapper').querySelector('.card-content');
-        if (content) {
-            content.classList.toggle('expanded');
-            btn.innerHTML = content.classList.contains('expanded') 
-                ? '<i class="fas fa-chevron-up"></i> 收起' 
-                : '<i class="fas fa-chevron-down"></i> 展开全部';
-        }
-    }
-});
-
-// 检测内容溢出的辅助函数
-function checkOverflow() {
-    const screenHeight = window.innerHeight;
-
-    document.querySelectorAll('.card-content').forEach(content => {
-        const wrapper = content.closest('.card-wrapper');
-        let toggleBtn = wrapper.querySelector('.expand-toggle-btn');
-
-        // 判断原内容实际高度是否大于整个屏幕的高度
-        if (content.scrollHeight > screenHeight) {
-            content.classList.add('needs-collapse');
-        } else {
-            content.classList.remove('needs-collapse');
-        }
-
-        if (!content.classList.contains('expanded')) {
-            // 当内容被折叠且带有 needs-collapse 时，出现展开按钮
-            const isOverflowing = content.scrollHeight > content.clientHeight + 5;
-            
-            if (isOverflowing && content.classList.contains('needs-collapse')) {
-                content.classList.add('is-overflowing');
-                // 添加展开按钮如果不存在的话
-                if (!toggleBtn) {
-                    toggleBtn = document.createElement('button');
-                    toggleBtn.className = 'expand-toggle-btn';
-                    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> 展开全部';
-                    wrapper.appendChild(toggleBtn);
-                }
-                toggleBtn.style.display = 'flex';
-            } else {
-                content.classList.remove('is-overflowing');
-                if (toggleBtn) toggleBtn.style.display = 'none';
-            }
-        } else if (toggleBtn && content.classList.contains('needs-collapse')) {
-             // 如果已经展开，确保按钮显示为"收起" (应对重新检测)
-             toggleBtn.style.display = 'flex';
-             toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> 收起';
-        } else if (toggleBtn) {
-             toggleBtn.style.display = 'none';
-        }
-    });
-}
-
-// 页面加载和滚动时检测溢出
-window.addEventListener('load', checkOverflow);
-window.addEventListener('resize', checkOverflow);
-
-// Intercept refresh functions to check overflow after DOM update
-const originalRefreshCards = window.refreshCards;
-if (originalRefreshCards) {
-    window.refreshCards = async function(...args) {
-        await originalRefreshCards.apply(this, args);
-        setTimeout(checkOverflow, 500); 
-    };
-}
-
-const originalLoadMoreCards = window.loadMoreCards;
-if (originalLoadMoreCards) {
-    window.loadMoreCards = async function(...args) {
-        await originalLoadMoreCards.apply(this, args);
-        setTimeout(checkOverflow, 500);
-    };
-}
-
+// 下载当前预览的图片
 async function downloadCurrentImage() {
     const modalImage = document.getElementById('modal-image');
     if (!modalImage || !modalImage.src) return;
@@ -1888,6 +1822,13 @@ function showSettings() {
     const quality = localStorage.getItem('compressionQuality') || 80;
     qualitySlider.value = quality;
     document.getElementById('quality-value').textContent = quality;
+
+    // 设置工具栏按钮显示/隐藏开关（4个独立开关）
+    const toolbarNames = ['scroll-top', 'grid-mode', 'highlight', 'gallery'];
+    toolbarNames.forEach(name => {
+        const toggle = document.getElementById('toolbar-' + name);
+        if (toggle) toggle.checked = localStorage.getItem('toolbar-' + name) === 'true';
+    });
 }
 
 function closeSettings() {
@@ -1897,15 +1838,13 @@ function closeSettings() {
 }
 
 function toggleTips() {
-    const container = document.getElementById('tips-container');
-    const text = document.getElementById('tips-toggle-text');
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        text.textContent = '隐藏快捷键与操作提示';
-    } else {
-        container.style.display = 'none';
-        text.textContent = '查看快捷键与操作提示';
-    }
+    const modal = document.getElementById('tips-modal');
+    modal.style.display = 'block';
+}
+
+function closeTips() {
+    const modal = document.getElementById('tips-modal');
+    modal.style.display = 'none';
 }
 
 function toggleSimpleMode() {
@@ -1921,6 +1860,22 @@ function toggleSimpleMode() {
         document.body.classList.remove('simple-mode');
     }
 }
+
+function toggleToolbarButton(name, visible) {
+    localStorage.setItem('toolbar-' + name, visible);
+    const btn = document.querySelector(`.toolbar-btn[data-toolbar="${name}"]`);
+    if (btn) btn.style.display = visible ? 'flex' : 'none';
+}
+
+// 页面加载时应用工具栏按钮隐藏状态
+(function initToolbarVisibility() {
+    const names = ['scroll-top', 'grid-mode', 'highlight', 'gallery'];
+    names.forEach(name => {
+        const visible = localStorage.getItem('toolbar-' + name) === 'true';
+        const btn = document.querySelector(`.toolbar-btn[data-toolbar="${name}"]`);
+        if (btn) btn.style.display = visible ? 'flex' : 'none';
+    });
+})();
 
 // 页面加载时检查设置状态
 document.addEventListener('DOMContentLoaded', function () {
@@ -2175,28 +2130,59 @@ document.addEventListener('keydown', function (e) {
         }
     }
 
+    // Escape key: always handle for closing modals
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        const expandModal = document.getElementById('card-expand-modal');
+        const settingsModal = document.getElementById('settings-modal');
+        const galleryModal = document.getElementById('gallery-modal');
+        const tipsModal = document.getElementById('tips-modal');
+        if (expandModal && expandModal.style.display === 'block') {
+            closeExpandModal();
+        } else if (tipsModal && tipsModal.style.display === 'block') {
+            closeTips();
+        } else if (settingsModal && settingsModal.style.display === 'block') {
+            closeSettings();
+        } else if (galleryModal && galleryModal.style.display === 'block') {
+            closeGallery();
+        } else if (highlightedCard) {
+            highlightCard(null);
+        }
+        return;
+    }
+
     if (!highlightedCard) {
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
             e.preventDefault();
             enterHighlightMode();
         }
         return;
     }
 
-    switch (e.key) {
+    // hjkl vim 导航映射
+    const vimMap = { 'h': 'ArrowLeft', 'j': 'ArrowDown', 'k': 'ArrowUp', 'l': 'ArrowRight' };
+    const mappedKey = vimMap[e.key] || e.key;
+
+    switch (mappedKey) {
         case 'Enter':
             e.preventDefault();
+            const img = highlightedCard.querySelector('.card-content img');
+            const link = highlightedCard.querySelector('.card-content a');
             const content = highlightedCard.querySelector('.card-content');
-            const img = content.querySelector('img');
-            const link = content.querySelector('a');
-            
+
             if (img) {
                 showImageModal(img.src);
             } else if (link) {
                 window.open(link.href, '_blank');
-            } else {
-                // 如果是超长长内容，enter 键也可以执行展开/收起
+            } else if (content && content.classList.contains('needs-collapse')) {
+                // Enter 键也可以展开/收起超长内容
                 content.classList.toggle('expanded');
+                const toggleBtn = highlightedCard.querySelector('.expand-toggle-btn');
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = content.classList.contains('expanded')
+                        ? '<i class="fas fa-chevron-up"></i> 收起'
+                        : '<i class="fas fa-chevron-down"></i> 展开全部';
+                }
             }
             break;
         case 'ArrowUp':
@@ -2238,20 +2224,6 @@ document.addEventListener('keydown', function (e) {
             e.preventDefault();
             const editBtn = highlightedCard.querySelector('button[onclick*="editCard"]');
             if (editBtn) editCard(editBtn);
-            break;
-        case 'Escape':
-            e.preventDefault();
-            // 如果有设置模态框或图册模态框打开，优先关闭它们
-            const settingsModal = document.getElementById('settings-modal');
-            const galleryModal = document.getElementById('gallery-modal');
-            if (settingsModal && settingsModal.style.display === 'block') {
-                closeSettings();
-            } else if (galleryModal && galleryModal.style.display === 'block') {
-                closeGallery();
-            } else {
-                // 只有在这些模态框都关闭的情况下，才退出选中模式
-                highlightCard(null);
-            }
             break;
     }
 });
@@ -2375,14 +2347,352 @@ function findGridVisibleNeighbor(current, direction) {
 
 
 // Grid Mode Toggle Logic
+let gridModeActive = false;
+let expandModalCardId = null;
+
 function toggleGridMode() {
     const container = document.getElementById('card-container');
     if (!container) return;
-    container.classList.toggle('grid-mode');
 
-    const isGrid = container.classList.contains('grid-mode');
-    localStorage.setItem('gridMode', isGrid);
-    updateGridModeIcon(isGrid);
+    gridModeActive = !gridModeActive;
+    container.classList.toggle('grid-mode', gridModeActive);
+    document.body.classList.toggle('grid-mode-active', gridModeActive);
+
+    if (gridModeActive) {
+        addNewCardPlaceholder();
+    } else {
+        removeNewCardPlaceholder();
+    }
+
+    localStorage.setItem('gridMode', gridModeActive);
+    updateGridModeIcon(gridModeActive);
+    setTimeout(checkOverflow, 200);
+}
+
+function addNewCardPlaceholder() {
+    const container = document.getElementById('card-container');
+    if (!container || container.querySelector('.grid-new-card')) return;
+
+    const card = document.createElement('div');
+    card.className = 'grid-new-card';
+    card.innerHTML = `
+        <span class="plus-icon">+</span><span>新建卡片</span>
+        <button class="grid-refresh-btn" title="刷新卡片">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    `;
+    // 点击卡片主体展开新建输入
+    card.addEventListener('click', function(e) {
+        // 如果点击的是刷新按钮，不展开
+        if (e.target.closest('.grid-refresh-btn')) return;
+        expandNewCardInput(this);
+    });
+    // 刷新按钮单独处理
+    card.querySelector('.grid-refresh-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        const icon = this.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+        refreshCards().finally(() => {
+            if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 500);
+        });
+    });
+
+    // 插入到第一个 card-wrapper 之前
+    const firstCard = container.querySelector('.card-wrapper');
+    if (firstCard) {
+        container.insertBefore(card, firstCard);
+    } else {
+        container.appendChild(card);
+    }
+}
+
+function removeNewCardPlaceholder() {
+    const card = document.querySelector('.grid-new-card');
+    if (card) card.remove();
+}
+
+function expandNewCardInput(el) {
+    if (document.querySelector('.grid-new-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'grid-new-overlay';
+    overlay.innerHTML = `
+        <div class="grid-new-floating">
+            <div class="grid-new-card-top">
+                <span>新建卡片</span>
+                <button class="grid-new-close" title="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <textarea class="grid-new-textarea" placeholder="键入文本或粘贴内容..."></textarea>
+            <div class="grid-new-actions">
+                <button class="gn-btn gn-send" title="发送">
+                    <i class="fas fa-paper-plane"></i> 发送
+                </button>
+                <button class="gn-btn gn-icon-btn grid-paste-btn" title="粘贴并发送">
+                    <i class="fas fa-paste"></i>
+                </button>
+                <div class="gn-spacer"></div>
+                <button class="gn-btn gn-icon-btn grid-img-btn" title="上传图片">
+                    <i class="fas fa-image"></i>
+                    <input type="file" class="grid-file-img" style="display:none" accept="image/*" multiple>
+                </button>
+                <button class="gn-btn gn-icon-btn grid-file-btn" title="上传文件">
+                    <i class="fas fa-file-upload"></i>
+                    <input type="file" class="grid-file-doc" style="display:none" accept="*" multiple>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const ta = overlay.querySelector('.grid-new-textarea');
+    if (ta) setTimeout(() => ta.focus(), 50);
+
+    // 快捷键：Cmd/Ctrl+Enter 发送，Esc 退出
+    if (ta) {
+        ta.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                submitGridCard(overlay);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                collapseNewCardInput(overlay);
+            }
+        });
+
+        // 粘贴事件：图片直接上传，HTML 直接提交，不走 textarea
+        ta.addEventListener('paste', function(e) {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    const randomStr = Math.random().toString(36).substring(2, 8);
+                    const newFile = new File([file], `image_${randomStr}.png`, {
+                        type: file.type,
+                        lastModified: file.lastModified
+                    });
+                    uploadImage([newFile]).then(() => collapseNewCardInput(overlay));
+                    return;
+                } else if (item.kind === 'file') {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    uploadFiles([file]).then(() => collapseNewCardInput(overlay));
+                    return;
+                }
+            }
+            // 检查是否有 HTML 内容（可能是复制的图片卡片）
+            const html = e.clipboardData.getData('text/html');
+            if (html && /<(img|div|video)\s/i.test(html.trim())) {
+                e.preventDefault();
+                submitGridCardHtml(overlay, html.trim());
+                return;
+            }
+            // 纯文本：让浏览器默认处理（插入 textarea）
+        });
+    }
+
+    // 点击遮罩层关闭
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            collapseNewCardInput(overlay);
+        }
+    });
+
+    // 关闭按钮
+    overlay.querySelector('.grid-new-close').addEventListener('click', function() {
+        collapseNewCardInput(overlay);
+    });
+
+    // 发送按钮
+    overlay.querySelector('.gn-send').addEventListener('click', function() {
+        submitGridCard(overlay);
+    });
+
+    // 粘贴按钮
+    const pasteBtn = overlay.querySelector('.grid-paste-btn');
+    if (pasteBtn) {
+        pasteBtn.addEventListener('click', function() {
+            gridPasteAndSend(overlay);
+        });
+    }
+
+    // 图片/文件按钮
+    const imgBtn = overlay.querySelector('.grid-img-btn');
+    if (imgBtn) {
+        const fi = imgBtn.querySelector('.grid-file-img');
+        if (fi) {
+            imgBtn.addEventListener('click', function() { fi.click(); });
+            fi.addEventListener('change', function() {
+                uploadImage(Array.from(this.files));
+                this.value = '';
+            });
+        }
+    }
+    const fileBtn = overlay.querySelector('.grid-file-btn');
+    if (fileBtn) {
+        const fi = fileBtn.querySelector('.grid-file-doc');
+        if (fi) {
+            fileBtn.addEventListener('click', function() { fi.click(); });
+            fi.addEventListener('change', function() {
+                uploadFiles(Array.from(this.files));
+                this.value = '';
+            });
+        }
+    }
+}
+
+function collapseNewCardInput(overlay) {
+    if (!overlay) return;
+    overlay.remove();
+}
+
+// 旧的外部点击处理器已由 overlay 内部处理替代
+
+let _gridSubmitting = false;
+
+async function submitGridCard(card) {
+    if (_gridSubmitting) return;
+    const ta = card.querySelector('.grid-new-textarea');
+    if (!ta) return;
+    let content = ta.value.trim();
+    if (!content) {
+        showNotification('内容为空', 'warning');
+        return;
+    }
+    _gridSubmitting = true;
+    ta.value = '';
+
+    try {
+        const response = await fetch('/api/add_card', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: content })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            const container = document.getElementById('card-container');
+            const newCard = document.createElement('div');
+            newCard.className = 'card-wrapper';
+            newCard.dataset.id = result.id;
+            const timeStr = getCurrentFormattedTime();
+            const timestamp = Date.now() / 1000;
+            newCard.innerHTML = `
+                <div class="card-header">
+                    <button onclick="copyToClipboard(this)" class="icon-button raw-button" title="复制" style="padding:4px 8px;font-size:12px;">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button onclick="editCard(this)" class="icon-button raw-button" title="编辑" style="padding:4px 8px;font-size:12px;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="downloadCard(this)" class="icon-button raw-button" title="下载" style="padding:4px 8px;font-size:12px;">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button onclick="deleteCard(this)" class="icon-button raw-button delete-button" title="删除" style="padding:4px 8px;font-size:12px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="card-content">${renderCardMarkdown(content)}</div>
+                <div class="card-time" data-timestamp="${timestamp}">${timeStr}</div>
+            `;
+            // 插入到新建卡片之后（或容器最前面）
+            const gridNewCard = container.querySelector('.grid-new-card');
+            if (gridNewCard && gridNewCard.nextSibling) {
+                container.insertBefore(newCard, gridNewCard.nextSibling);
+            } else {
+                container.insertBefore(newCard, gridNewCard || container.firstChild);
+            }
+            setTimeout(checkOverflow, 100);
+            showNotification('发送成功', 'success');
+            collapseNewCardInput(card);
+        } else {
+            showNotification('发送失败: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('发送出错:', error);
+        showNotification('发送出错', 'error');
+    } finally {
+        _gridSubmitting = false;
+    }
+}
+
+async function gridPasteAndSend(card) {
+    const ta = card.querySelector('.grid-new-textarea');
+    if (!ta) return;
+    if (ta.value.trim()) {
+        submitGridCard(card);
+        return;
+    }
+
+    // 先尝试读取二进制图片/文件数据
+    try {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+            for (const type of item.types) {
+                if (type.startsWith('image/')) {
+                    const blob = await item.getType(type);
+                    const randomStr = Math.random().toString(36).substring(2, 8);
+                    const file = new File([blob], `image_${randomStr}.png`, {
+                        type: type,
+                        lastModified: Date.now()
+                    });
+                    await uploadImage([file]);
+                    collapseNewCardInput(card);
+                    return;
+                } else if (type === 'application/octet-stream' || type.startsWith('application/')) {
+                    const blob = await item.getType(type);
+                    const file = new File([blob], `file_${Date.now()}`, { type: type });
+                    await uploadFiles([file]);
+                    collapseNewCardInput(card);
+                    return;
+                }
+            }
+        }
+    } catch (err) {
+        // clipboard.read() 不支持时 fallback 到 readText()
+    }
+
+    // Fallback：读取文本内容
+    try {
+        const html = await navigator.clipboard.readText();
+        if (html && html.trim()) {
+            // 检测是否是 HTML 内容（图片卡、文件卡等）
+            if (/<(img|div|video|a)\s/i.test(html.trim())) {
+                await submitGridCardHtml(card, html.trim());
+            } else {
+                ta.value = html.trim();
+                submitGridCard(card);
+            }
+        } else {
+            showNotification('剪贴板为空', 'warning');
+        }
+    } catch (err) {
+        showNotification('无法读取剪贴板', 'error');
+    }
+}
+
+// 直接提交 HTML 内容（用于粘贴的图片/文件卡片）
+async function submitGridCardHtml(card, htmlContent) {
+    if (!htmlContent) return;
+    try {
+        const response = await fetch('/api/add_card', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: htmlContent })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            addCardToPage(htmlContent, result.id);
+            collapseNewCardInput(card);
+        } else {
+            showNotification('发送失败: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('发送出错:', error);
+        showNotification('发送出错', 'error');
+    }
 }
 
 function updateGridModeIcon(isGrid) {
@@ -2398,11 +2708,79 @@ function updateGridModeIcon(isGrid) {
     }
 }
 
+// 网格模式下点击卡片展开
+function openExpandModal(cardWrapper) {
+    if (!gridModeActive) return;
+    const modal = document.getElementById('card-expand-modal');
+    const body = document.getElementById('expand-modal-body');
+    const timeEl = document.getElementById('expand-modal-time');
+
+    const content = cardWrapper.querySelector('.card-content');
+    const time = cardWrapper.querySelector('.card-time');
+
+    expandModalCardId = cardWrapper.dataset.id;
+    body.innerHTML = content.innerHTML;
+    timeEl.textContent = time ? time.textContent : '';
+    timeEl.dataset.timestamp = time ? time.dataset.timestamp : '';
+    updateAllTimes();
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeExpandModal() {
+    const modal = document.getElementById('card-expand-modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    expandModalCardId = null;
+}
+
+function editFromExpandModal() {
+    if (!expandModalCardId) return;
+    const wrapper = document.querySelector(`.card-wrapper[data-id="${expandModalCardId}"]`);
+    if (!wrapper) return;
+    closeExpandModal();
+    // 退出网格模式再编辑
+    if (gridModeActive) toggleGridMode();
+    const editBtn = wrapper.querySelector('button[onclick*="editCard"]');
+    if (editBtn) editCard(editBtn);
+}
+
+function copyFromExpandModal() {
+    if (!expandModalCardId) return;
+    const wrapper = document.querySelector(`.card-wrapper[data-id="${expandModalCardId}"]`);
+    if (!wrapper) return;
+    const copyBtn = wrapper.querySelector('button[onclick*="copyToClipboard"]');
+    if (copyBtn) copyToClipboard(copyBtn);
+}
+
+function deleteFromExpandModal() {
+    if (!expandModalCardId) return;
+    const wrapper = document.querySelector(`.card-wrapper[data-id="${expandModalCardId}"]`);
+    if (!wrapper) return;
+    closeExpandModal();
+    const deleteBtn = wrapper.querySelector('.delete-button');
+    if (deleteBtn) deleteCard(deleteBtn);
+}
+
+// 网格模式下点击卡片展开（排除按钮、链接、图片点击）
+document.addEventListener('click', function(e) {
+    if (!gridModeActive) return;
+    const wrapper = e.target.closest('.card-wrapper');
+    if (!wrapper) return;
+    // 忽略按钮、链接、图片、展开/收起按钮的点击
+    if (e.target.closest('.icon-button') || e.target.closest('a') || e.target.closest('img') || e.target.closest('.expand-toggle-btn')) return;
+    openExpandModal(wrapper);
+});
+
 function initGridMode() {
     const savedMode = localStorage.getItem('gridMode') === 'true';
     if (savedMode) {
+        gridModeActive = true;
         const container = document.getElementById('card-container');
         if (container) container.classList.add('grid-mode');
+        document.body.classList.add('grid-mode-active');
+        addNewCardPlaceholder();
     }
     updateGridModeIcon(savedMode);
 }
@@ -2585,6 +2963,84 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 3500);
+}
+
+// --- 内容折叠/展开功能 ---
+
+// 点击展开/收起按钮
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('expand-toggle-btn') || e.target.closest('.expand-toggle-btn')) {
+        const btn = e.target.closest('.expand-toggle-btn');
+        const content = btn.closest('.card-wrapper').querySelector('.card-content');
+        if (content) {
+            content.classList.toggle('expanded');
+            btn.innerHTML = content.classList.contains('expanded')
+                ? '<i class="fas fa-chevron-up"></i> 收起'
+                : '<i class="fas fa-chevron-down"></i> 展开全部';
+        }
+    }
+});
+
+// 检测内容溢出的辅助函数
+function checkOverflow() {
+    const screenHeight = window.innerHeight;
+
+    document.querySelectorAll('.card-content').forEach(content => {
+        const wrapper = content.closest('.card-wrapper');
+        if (!wrapper) return;
+        let toggleBtn = wrapper.querySelector('.expand-toggle-btn');
+
+        // 判断原内容实际高度是否大于屏幕高度
+        if (content.scrollHeight > screenHeight) {
+            content.classList.add('needs-collapse');
+        } else {
+            content.classList.remove('needs-collapse');
+        }
+
+        if (!content.classList.contains('expanded')) {
+            const isOverflowing = content.scrollHeight > content.clientHeight + 5;
+
+            if (isOverflowing && content.classList.contains('needs-collapse')) {
+                content.classList.add('is-overflowing');
+                if (!toggleBtn) {
+                    toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'expand-toggle-btn';
+                    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> 展开全部';
+                    wrapper.appendChild(toggleBtn);
+                }
+                toggleBtn.style.display = 'flex';
+            } else {
+                content.classList.remove('is-overflowing');
+                if (toggleBtn) toggleBtn.style.display = 'none';
+            }
+        } else if (toggleBtn && content.classList.contains('needs-collapse')) {
+            toggleBtn.style.display = 'flex';
+            toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> 收起';
+        } else if (toggleBtn) {
+            toggleBtn.style.display = 'none';
+        }
+    });
+}
+
+// 页面加载和窗口大小变化时检测溢出
+window.addEventListener('load', checkOverflow);
+window.addEventListener('resize', checkOverflow);
+
+// 拦截 refreshCards 和 loadMoreCards，在 DOM 更新后重新检测溢出
+const _originalRefreshCards = window.refreshCards;
+if (_originalRefreshCards) {
+    window.refreshCards = async function(...args) {
+        await _originalRefreshCards.apply(this, args);
+        setTimeout(checkOverflow, 500);
+    };
+}
+
+const _originalLoadMoreCards = window.loadMoreCards;
+if (_originalLoadMoreCards) {
+    window.loadMoreCards = async function(...args) {
+        await _originalLoadMoreCards.apply(this, args);
+        setTimeout(checkOverflow, 500);
+    };
 }
 
 // 导出与导入逻辑

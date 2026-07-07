@@ -14,10 +14,10 @@ import time
 import auth_service
 import json
 import net_utils
-if sys.platform == 'darwin':
-    import tray_manager_mac as tray_manager
-else:
+try:
     import tray_manager
+except Exception:
+    tray_manager = None
 import threading
 
 PINNED_FILE = 'pinned.json'
@@ -85,6 +85,18 @@ app = Flask(__name__,
            static_folder=resource_path('static'))
 
 CARDS_DIR = 'cards'  # 新的卡片存储目录
+
+@app.template_filter('safe_or_escape')
+def safe_or_escape(content):
+    """系统生成的 HTML（图片/视频/文件卡片）原样输出，纯文本转义 HTML"""
+    if not content:
+        return ''
+    import markupsafe
+    # 系统生成的图片/视频永远包在 image-card 或 file-card div 内
+    if 'image-card' in content or 'file-card' in content:
+        return markupsafe.Markup(content)  # 标记为安全 HTML，防止 autoescape 二次转义
+    # 纯文本：转义 HTML 特殊字符
+    return markupsafe.escape(content)
 
 def log_action(action, details=""):
     client_ip = request.remote_addr
@@ -164,15 +176,11 @@ def load_cards():
 def process_text_content(content):
     if not content:
         return content
-    
+
     # 统一换行符，防止 Windows 下出现双重换行
     content = content.replace('\r\n', '\n').replace('\r', '\n')
-    
-    # 如果内容看起来已经包含 HTML 标签（特别是卡片结构），就不再处理，防止破坏结构
-    if '<div' in content or '<img' in content or '<a ' in content or '<script' in content:
-        return content
-    # 使用正则表达式匹配所有链接
-    content = re.sub(r'(https?://[^\s]+)', r'<a href="\1" target="_blank">\1</a>', content)
+
+    # 原样存储，HTML 转义和 markdown 渲染由前端 renderCardMarkdown 处理
     return content
 
 def save_card(content, timestamp=None):
@@ -545,6 +553,9 @@ if __name__ == '__main__':
         serve(app, host="0.0.0.0", port=port)
 
     if args.tray:
+        if tray_manager is None:
+            print("错误: 托盘模式需要 pystray 库，当前环境不支持（可能缺少图形界面）。请使用普通模式运行。")
+            sys.exit(1)
         # 托盘模式：在后台线程启动服务器
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()

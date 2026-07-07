@@ -175,6 +175,27 @@ a {
     background-color: #c2d7f7;
 }
 
+#paste-send-btn {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    width: 44px;
+}
+
+#paste-send-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="light"] #paste-send-btn {
+    background-color: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] #paste-send-btn:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
 .card {
     display: flex;
     flex-direction: column;
@@ -270,7 +291,6 @@ body.simple-mode .card-header .icon-button:hover {
     color: var(--text-color);
     opacity: 0.5;
     pointer-events: none;
-    z-index: 10;
 }
 
 
@@ -279,14 +299,13 @@ body.simple-mode .card-header .icon-button:hover {
     /* Increased bottom padding for time and buttons */
     margin: 0;
     font-size: 15px;
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--text-color);
-    /* background: transparent;卡片颜色 调黑了一点为了可读性 */
+    /* background-color: #0000001f;卡片颜色 调黑了一点为了可读性 */
     background-color: #0000001f;
     border: none;
     width: 100%;
     box-sizing: border-box;
-    white-space: pre-wrap;
     word-wrap: break-word;
     overflow-wrap: break-word;
     overflow: hidden;
@@ -346,6 +365,95 @@ body.simple-mode .card-header .icon-button:hover {
     z-index: 5;
 }
 
+/* Markdown 样式 */
+.card-content h1,
+.card-content h2,
+.card-content h3,
+.card-content h4,
+.card-content h5,
+.card-content h6 {
+    margin: 12px 0 6px;
+    line-height: 1.3;
+}
+
+.card-content h1 { font-size: 1.4em; }
+.card-content h2 { font-size: 1.25em; }
+.card-content h3 { font-size: 1.1em; }
+
+.card-content p {
+    margin: 6px 0;
+}
+
+.card-content p:first-child {
+    margin-top: 0;
+}
+
+.card-content p:last-child {
+    margin-bottom: 0;
+}
+
+.card-content code {
+    background: rgba(var(--text-color-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+}
+
+.card-content pre {
+    background: rgba(var(--text-color-rgb), 0.08);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    overflow-x: auto;
+}
+
+.card-content pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.85em;
+}
+
+.card-content blockquote {
+    border-left: 3px solid var(--link-color);
+    margin: 8px 0;
+    padding: 4px 12px;
+    opacity: 0.85;
+}
+
+.card-content ul,
+.card-content ol {
+    margin: 6px 0;
+    padding-left: 24px;
+}
+
+.card-content li {
+    margin: 2px 0;
+}
+
+.card-content hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 12px 0;
+}
+
+.card-content table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    width: 100%;
+}
+
+.card-content th,
+.card-content td {
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.card-content th {
+    background: rgba(var(--text-color-rgb), 0.06);
+}
+
 .raw-button {
     padding: 6px 10px !important;
     border-radius: 6px !important;
@@ -381,14 +489,6 @@ body.simple-mode .card-header .icon-button:hover {
     margin: 8px 0;
     max-width: 100%;
     height: auto;
-}
-
-.card-content pre {
-    background: rgba(var(--text-color-rgb), 0.05);
-    padding: 12px;
-    border-radius: 8px;
-    margin: 8px 0;
-    overflow-x: auto;
 }
 
 @media (max-width: 768px) {
@@ -747,27 +847,6 @@ a:hover {
     opacity: 1;
 }
 
-/* 筛选指示点 */
-.filter-toggle-btn {
-    position: relative;
-}
-
-.filter-toggle-btn .filter-dot {
-    display: none;
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 8px;
-    height: 8px;
-    background-color: var(--link-color);
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.filter-toggle-btn.has-filter .filter-dot {
-    display: block;
-}
-
 .dropdown-content {
     display: none;
     position: absolute;
@@ -871,6 +950,11 @@ a:hover {
 .banner-right {
     display: flex;
     align-items: center;
+}
+
+/* 工具栏按钮默认隐藏，JS 根据设置控制显示 */
+.toolbar-btn {
+    display: none;
 }
 
 /* GitHub按钮样式优化 */
@@ -1163,28 +1247,26 @@ input:checked+.slider:before {
 .about-links {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .about-link {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    color: var(--text-color);
+    gap: 8px;
+    color: var(--link-color);
     text-decoration: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
 }
 
 .about-link:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
+    opacity: 0.7;
+    text-decoration: underline;
 }
 
 .about-link i {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* 图册预览样式 */
@@ -1385,38 +1467,517 @@ input:checked+.slider:before {
     background: transparent;
 }
 
-/* Grid Mode Layout */
+/* ========================
+   Grid Mode - Google Keep style
+   ======================== */
+body.grid-mode-active .input-form {
+    display: none;
+}
+
+body.grid-mode-active .card {
+    max-width: 100% !important;
+    padding: 12px;
+}
+
 .card.grid-mode {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    padding: 10px;
-    align-items: start;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    padding: 0;
+    max-width: 100% !important;
 }
 
 .card.grid-mode .card-wrapper {
-    margin-bottom: 0;
-    width: auto;
+    margin: 0;
+    break-inside: avoid;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 1fr auto;
+    aspect-ratio: 4 / 3;
+    background: var(--txtbg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.card.grid-mode .card-wrapper:hover {
+    border-color: var(--link-color);
+    transform: none;
+    box-shadow: none;
+}
+
+/* content: row 1, span both columns */
+.card.grid-mode .card-content {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    overflow: hidden;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 10px 12px 6px;
+}
+
+.card.grid-mode .card-content.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.card.grid-mode .card-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(transparent, var(--txtbg-color));
+    pointer-events: none;
+}
+
+.card.grid-mode .card-content.expanded::after {
+    display: none;
+}
+
+/* time: hidden in grid mode */
+.card.grid-mode .card-time {
+    display: none;
+}
+
+/* header: row 2, right-aligned, thin strip */
+.card.grid-mode .card-header {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    position: static;
+    opacity: 1;
+    padding: 1px 4px 2px;
+    justify-content: flex-end;
+    gap: 0;
+    border-radius: 0;
+}
+
+.card.grid-mode .card-header .icon-button {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.card.grid-mode .card-header .icon-button:hover {
+    background: rgba(var(--text-color-rgb), 0.1);
+}
+
+.card.grid-mode .expand-toggle-btn {
+    display: none !important;
+}
+
+/* ---- 新建卡片（Grid 内联） ---- */
+.grid-new-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 4 / 3;
+    border: 3px dashed var(--text-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(var(--text-color-rgb), 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--text-color);
+    opacity: 0.75;
+    font-size: 14px;
+    gap: 6px;
+    user-select: none;
+    position: relative;
+}
+
+.grid-new-card:hover {
+    opacity: 0.9;
+    border-color: var(--link-color);
+    background: rgba(128,128,128,0.03);
+}
+
+.grid-new-card .plus-icon {
+    font-size: 20px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.grid-new-card > span {
+    pointer-events: none;
+}
+
+/* 刷新按钮：右下角 */
+.grid-refresh-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.5;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.grid-refresh-btn:hover {
+    opacity: 1;
+    background: rgba(var(--text-color-rgb), 0.1);
+}
+
+/* 展开状态隐藏刷新按钮 */
+.grid-new-card.expanded-input .grid-refresh-btn {
+    display: none;
+}
+
+/* ---- 新建卡片悬浮弹窗 ---- */
+.grid-new-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: gridOverlayIn 0.15s ease;
+}
+
+@keyframes gridOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.grid-new-floating {
+    width: 90%;
+    max-width: 560px;
+    background: var(--txtbg-color);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    animation: gridFloatingIn 0.2s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
-.card.grid-mode .card-content {
+@keyframes gridFloatingIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.grid-new-floating .grid-new-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--input-border);
+}
+
+.grid-new-floating .grid-new-card-top span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+.grid-new-floating .grid-new-card-top .grid-new-close {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.5;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+}
+
+.grid-new-floating .grid-new-card-top .grid-new-close:hover {
+    opacity: 1;
+    background: rgba(128,128,128,0.12);
+}
+
+.grid-new-floating .grid-new-textarea {
     flex: 1;
-    max-height: 400px;
-    overflow-y: auto;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 16px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    min-height: 200px;
 }
 
-/* On very small screens, revert to single column but keep grid gap */
-@media (max-width: 480px) {
+.grid-new-floating .grid-new-textarea::placeholder {
+    color: var(--text-color);
+    opacity: 0.35;
+}
+
+.grid-new-floating .grid-new-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--input-border);
+}
+
+.grid-new-floating .grid-new-actions .gn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 16px;
+    border: none;
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.grid-new-floating .grid-new-actions .gn-send {
+    background: #3b4759;
+    color: #d2e3ff;
+}
+
+[data-theme="light"] .grid-new-floating .grid-new-actions .gn-send {
+    background: #d3e3fd;
+    color: #041e49;
+}
+
+.grid-new-floating .grid-new-actions .gn-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.grid-new-floating .grid-new-actions .gn-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(128,128,128,0.08);
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+.grid-new-floating .grid-new-actions .gn-icon-btn:hover {
+    opacity: 1;
+    background: rgba(128,128,128,0.16);
+}
+
+.grid-new-floating .grid-new-actions .gn-spacer {
+    flex: 1;
+}
+
+/* ---- 卡片展开弹窗（操作按钮在右上角） ---- */
+#card-expand-modal {
+    z-index: 2000;
+}
+
+.card-expand-content {
+    max-width: 720px;
+    margin: 4% auto;
+    background: var(--txtbg-color);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--input-border);
+    border-radius: 16px;
+    padding: 20px 24px 24px;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.25s ease;
+    position: relative;
+}
+
+/* 右上角操作栏 */
+.card-expand-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--input-border);
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.card-expand-topbar .expand-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(128,128,128,0.08);
+    color: var(--text-color);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    opacity: 0.7;
+}
+
+.card-expand-topbar .expand-action-btn:hover {
+    opacity: 1;
+    background: rgba(128,128,128,0.16);
+}
+
+.card-expand-topbar .expand-action-btn.delete-action:hover {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff4444;
+}
+
+.card-expand-topbar .expand-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0.5;
+    margin-left: 8px;
+    transition: all 0.15s ease;
+}
+
+.card-expand-topbar .expand-close-btn:hover {
+    opacity: 1;
+    background: rgba(128,128,128,0.12);
+}
+
+.card-expand-time {
+    font-size: 12px;
+    color: var(--text-color);
+    opacity: 0.45;
+    margin-right: auto;
+}
+
+/* 展开弹窗内容区 */
+.card-expand-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.card-expand-body .card-content {
+    background: transparent !important;
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.card-expand-body .card-content::after {
+    display: none !important;
+}
+
+/* ---- 全局自定义滚动条 ---- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.4);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.25) transparent;
+}
+
+[data-theme="dark"] * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+[data-theme="light"] * {
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* 响应式列数 */
+@media (max-width: 1600px) {
     .card.grid-mode {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 
-.card.grid-mode {
-    max-width: 100% !important;
+@media (max-width: 1200px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-new-card.expanded-input {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .grid-new-card.expanded-input {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 380px) {
+    .card.grid-mode {
+        grid-template-columns: 1fr;
+    }
+    .grid-new-card.expanded-input {
+        grid-column: span 1;
+    }
 }
 
 /* Highlight Mode Base Style */
@@ -1522,4 +2083,83 @@ body.highlight-mode-active .card-wrapper {
 
 #get-old-cards-btn:hover i {
     transform: rotate(-30deg);
+}
+
+/* ========================
+   Mobile: Force List Mode
+   ======================== */
+@media (max-width: 600px) {
+    /* Disable grid layout entirely */
+    .card.grid-mode {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+        grid-template-columns: 1fr !important;
+    }
+
+    .card.grid-mode .card-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: auto !important;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--input-border);
+        border-radius: 16px;
+    }
+
+    .card.grid-mode .card-content {
+        max-height: none !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+        padding: 12px 14px !important;
+    }
+
+    .card.grid-mode .card-time {
+        display: block !important;
+    }
+
+    .card.grid-mode .card-header {
+        position: absolute !important;
+        opacity: 0 !important;
+    }
+
+    .card.grid-mode .card-wrapper:hover .card-header,
+    .card.grid-mode .card-wrapper:focus-within .card-header {
+        opacity: 1 !important;
+    }
+
+    /* Hide the new-card placeholder in grid mode on mobile */
+    .grid-new-card {
+        display: none !important;
+    }
+
+    /* Show the regular input form */
+    body.grid-mode-active .input-form {
+        display: flex !important;
+    }
+}
+
+/* Responsive columns for tablets and wider screens */
+@media (max-width: 900px) and (min-width: 601px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1200px) and (min-width: 901px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 1600px) and (min-width: 1201px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+@media (min-width: 1601px) {
+    .card.grid-mode {
+        grid-template-columns: repeat(6, 1fr);
+    }
 }

@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!--  App 名称，在用户选择添加到主页的时候这个名字会自动蹦出来 -->
     <meta name="apple-mobile-web-app-title" content="LanClip">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=17">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .btn-block {
@@ -28,6 +28,7 @@
             transition: all 0.2s;
             font-size: 14px;
             width: 100%;
+            box-sizing: border-box;
         }
 
         .btn-block:hover {
@@ -60,7 +61,7 @@
                 <div class="logo">
                     <img src="{{ url_for('static', filename='lizard.png') }}" alt="Logo">
                 </div>
-                <span class="title">LAN Clip</span>
+                <span class="title">LAN CLIP</span>
             </div>
             <div class="search-container desktop-only">
                 <i class="fas fa-search"></i>
@@ -68,7 +69,6 @@
                 <div class="filter-dropdown">
                     <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)" title="内容筛选">
                         <i class="fas fa-filter"></i>
-                        <span class="filter-dot"></span>
                     </button>
                     <div class="dropdown-content">
                         <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
@@ -90,20 +90,20 @@
                 </div>
             </div>
             <div class="banner-right">
-                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button"
+                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="icon-button toolbar-btn" data-toolbar="scroll-top"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-arrow-up"></i>
                 </button>
                 <!-- todo，这个模式还在优化中 -->
-                <!-- <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button" title="切换视图"
+                <button onclick="toggleGridMode()" id="grid-mode-btn" class="icon-button toolbar-btn" data-toolbar="grid-mode" title="切换视图"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-border-all"></i>
-                </button> -->
-                <button onclick="enterHighlightMode()" class="icon-button" title="进入选中模式"
+                </button>
+                <button onclick="enterHighlightMode()" class="icon-button toolbar-btn" data-toolbar="highlight" title="进入选中模式"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-mouse-pointer"></i>
                 </button>
-                <button onclick="showGallery()" class="icon-button" title="图册预览"
+                <button onclick="showGallery()" class="icon-button toolbar-btn" data-toolbar="gallery" title="图册预览"
                     style="padding: 0; margin-right: 15px;">
                     <i class="fas fa-images"></i>
                 </button>
@@ -137,7 +137,6 @@
                 <div class="filter-dropdown">
                     <button class="filter-toggle-btn" onclick="toggleFilterMenu(event)">
                         <i class="fas fa-filter"></i>
-                        <span class="filter-dot"></span>
                     </button>
                     <div class="dropdown-content">
                         <div class="dropdown-item active" data-type="all" onclick="setTypeFilter('all')">
@@ -164,6 +163,9 @@
                     <button onclick="addCard()" id="add-btn" class="icon-button" title="添加">
                         <i class="fas fa-paper-plane"></i>
                         <span style="margin-left: 5px;">发送</span>
+                    </button>
+                    <button onclick="pasteAndSend()" id="paste-send-btn" class="icon-button" title="粘贴并发送">
+                        <i class="fas fa-paste"></i>
                     </button>
                     <button onclick="refreshCards()" class="icon-button" title="刷新">
                         <i class="fas fa-sync-alt"></i>
@@ -215,7 +217,7 @@
                     </button>
 
                 </div>
-                <pre class="card-content">{{ card.content | safe }}</pre>
+                <div class="card-content">{{ card.content | safe_or_escape }}</div>
                 <div class="card-time" data-timestamp="{{ card.timestamp }}">{{ card.time }}</div>
             </div>
             {% endfor %}
@@ -360,14 +362,6 @@
 
                         <div class="setting-item">
                             <label class="switch">
-                                <input type="checkbox" id="clear-history-toggle" onchange="clearHistory()">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="setting-label">清空历史记录</span>
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="switch">
                                 <input type="checkbox" id="auto-compress-toggle" onchange="toggleAutoCompress()">
                                 <span class="slider"></span>
                             </label>
@@ -381,6 +375,38 @@
                             </div>
                             <input type="range" id="compression-quality-slider" min="1" max="100" value="80"
                                 style="width: 100%;" oninput="updateCompressionQuality(this.value)">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="toolbar-scroll-top" onchange="toggleToolbarButton('scroll-top', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">显示「回到顶部」按钮</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="toolbar-grid-mode" onchange="toggleToolbarButton('grid-mode', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">显示「切换视图」按钮</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="toolbar-highlight" onchange="toggleToolbarButton('highlight', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">显示「选中模式」按钮</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="toolbar-gallery" onchange="toggleToolbarButton('gallery', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="setting-label">显示「图册预览」按钮</span>
                         </div>
                     </div>
 
@@ -400,56 +426,9 @@
                                 <i class="fas fa-file-import"></i> 导入/恢复数据包 (.zip)
                                 <input type="file" id="import-input" style="display: none;" accept=".zip" onchange="importContent(this)">
                             </label>
-                        </div>
-                    </div>
-
-                    <div id="tips-container" style="display: none;">
-                        <div class="settings-section">
-                            <h4>使用提示</h4>
-                            <div class="tips-list">
-                                <div class="tip-item">
-                                    <i class="fas fa-keyboard"></i>
-                                    <span>Ctrl+Enter 快速发送消息</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-image"></i>
-                                    <span>点击图片可以查看大图</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-arrows-alt"></i>
-                                    <span>使用方向键切换图片</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-file-upload"></i>
-                                    <span>支持拖拽上传文件</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h4>选中模式</h4>
-                            <div class="tips-list">
-                                <div class="tip-item">
-                                    <i class="fas fa-mouse-pointer"></i>
-                                    <span>双击卡片或点击顶部图标进入选中模式</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-arrows-alt"></i>
-                                    <span>方向键 ↑ ↓ ← → 切换选中卡片</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-trash"></i>
-                                    <span>Delete / Backspace 删除选中卡片</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-copy"></i>
-                                    <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
-                                </div>
-                                <div class="tip-item">
-                                    <i class="fas fa-times"></i>
-                                    <span>Esc 退出选中模式</span>
-                                </div>
-                            </div>
+                            <button onclick="clearHistory()" class="btn-block danger">
+                                <i class="fas fa-trash-alt"></i> 清空历史记录
+                            </button>
                         </div>
                     </div>
 
@@ -461,12 +440,99 @@
                                 <span>GitHub 仓库</span>
                             </a>
                         </div>
+                        <p style="font-size: 12px; opacity: 0.5; margin-top: 8px;">LAN CLIP v1.1.0</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <script src="{{ url_for('static', filename='main.js') }}"></script>
+        <!-- 快捷键提示弹窗 -->
+        <div id="tips-modal" class="modal" style="display: none;">
+            <div class="modal-content settings-modal-content">
+                <div class="modal-header">
+                    <h3>快捷键与操作提示</h3>
+                    <button class="close-button" onclick="closeTips()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h4>使用提示</h4>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Ctrl+Enter 快速发送消息</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-image"></i>
+                                <span>点击图片可以查看大图</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-arrows-alt"></i>
+                                <span>使用方向键切换图片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-file-upload"></i>
+                                <span>支持拖拽上传文件</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>选中模式</h4>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <i class="fas fa-mouse-pointer"></i>
+                                <span>双击卡片或点击顶部图标进入选中模式</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-arrows-alt"></i>
+                                <span>方向键 ↑ ↓ ← → 或 H J K L 切换选中卡片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-trash"></i>
+                                <span>Delete / Backspace 删除选中卡片</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-copy"></i>
+                                <span>C 复制内容 / D 下载附件 / E 编辑内容</span>
+                            </div>
+                            <div class="tip-item">
+                                <i class="fas fa-times"></i>
+                                <span>Esc 退出选中模式</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片展开弹窗 -->
+        <div id="card-expand-modal" class="modal" style="display: none;" onclick="if(event.target===this)closeExpandModal()">
+            <div class="card-expand-content">
+                <div class="card-expand-topbar">
+                    <span id="expand-modal-time" class="card-expand-time"></span>
+                    <button class="expand-action-btn" onclick="editFromExpandModal()" title="编辑">
+                        <i class="fas fa-edit"></i> 编辑
+                    </button>
+                    <button class="expand-action-btn" onclick="copyFromExpandModal()" title="复制">
+                        <i class="fas fa-copy"></i> 复制
+                    </button>
+                    <button class="expand-action-btn delete-action" onclick="deleteFromExpandModal()" title="删除">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                    <button class="expand-close-btn" onclick="closeExpandModal()" title="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="card-expand-body">
+                    <div id="expand-modal-body" class="card-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='main.js') }}?v=21"></script>
 
     </div>
     <div id="notification-container"></div>
