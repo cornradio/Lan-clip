@@ -1047,20 +1047,185 @@ async function editCard(button) {
     const cardWrapper = button.closest('.card-wrapper');
     const contentHtml = cardWrapper.querySelector('.card-content').innerHTML;
     const isFileOrImage = contentHtml.includes('file-card') || contentHtml.includes('image-card');
-
-    // 1. 将内容放入输入框
-    // 对于文件/图片使用 innerHTML，对于纯文本为了编辑方便使用 innerText
-    const textarea = document.getElementById('input-text');
     const contentToEdit = isFileOrImage ? contentHtml : cardWrapper.querySelector('.card-content').innerText;
+
+    // 网格模式：打开悬浮编辑窗口
+    if (gridModeActive) {
+        openGridEditOverlay(contentToEdit, cardWrapper.dataset.id);
+        return;
+    }
+
+    // 列表模式：原有逻辑（放入输入框 + 删除原卡片）
+    const textarea = document.getElementById('input-text');
     textarea.value = contentToEdit;
     localStorage.setItem('input-text-content', contentToEdit);
-
-    // 2. 滚动到顶部并聚焦
     window.scrollTo({ top: 0, behavior: 'smooth' });
     textarea.focus();
-
-    // 3. 删除原卡片 (新提交会自动带上当前时间)
     await deleteCard(button);
+}
+
+// 网格模式下的悬浮编辑窗口
+function openGridEditOverlay(content, cardId) {
+    if (document.querySelector('.grid-new-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'grid-new-overlay';
+    overlay.innerHTML = `
+        <div class="grid-new-floating">
+            <div class="grid-new-card-top">
+                <span>编辑卡片</span>
+                <button class="grid-new-close" title="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <textarea class="grid-new-textarea" placeholder="编辑内容..."></textarea>
+            <div class="grid-new-actions">
+                <button class="gn-btn gn-send" title="保存">
+                    <i class="fas fa-check"></i> 保存
+                </button>
+                <button class="gn-btn gn-icon-btn grid-paste-btn" title="粘贴并发送">
+                    <i class="fas fa-paste"></i>
+                </button>
+                <div class="gn-spacer"></div>
+                <button class="gn-btn gn-icon-btn grid-img-btn" title="上传图片">
+                    <i class="fas fa-image"></i>
+                    <input type="file" class="grid-file-img" style="display:none" accept="image/*" multiple>
+                </button>
+                <button class="gn-btn gn-icon-btn grid-file-btn" title="上传文件">
+                    <i class="fas fa-file-upload"></i>
+                    <input type="file" class="grid-file-doc" style="display:none" accept="*" multiple>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const ta = overlay.querySelector('.grid-new-textarea');
+    ta.value = content;
+    setTimeout(() => { ta.focus(); ta.select(); }, 50);
+
+    // 快捷键
+    ta.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            submitGridEdit(overlay, cardId);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            overlay.remove();
+        }
+    });
+
+    // 粘贴事件
+    ta.addEventListener('paste', function(e) {
+        const items = e.clipboardData.items;
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                const randomStr = Math.random().toString(36).substring(2, 8);
+                const newFile = new File([file], `image_${randomStr}.png`, {
+                    type: file.type,
+                    lastModified: file.lastModified
+                });
+                uploadImage([newFile]).then(() => overlay.remove());
+                return;
+            } else if (item.kind === 'file') {
+                e.preventDefault();
+                const file = item.getAsFile();
+                uploadFiles([file]).then(() => overlay.remove());
+                return;
+            }
+        }
+    });
+
+    // 点击遮罩关闭
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    // 关闭按钮
+    overlay.querySelector('.grid-new-close').addEventListener('click', function() {
+        overlay.remove();
+    });
+
+    // 保存按钮
+    overlay.querySelector('.gn-send').addEventListener('click', function() {
+        submitGridEdit(overlay, cardId);
+    });
+
+    // 粘贴按钮
+    const pasteBtn = overlay.querySelector('.grid-paste-btn');
+    if (pasteBtn) {
+        pasteBtn.addEventListener('click', function() {
+            gridPasteAndSend(overlay);
+        });
+    }
+
+    // 图片/文件按钮
+    const imgBtn = overlay.querySelector('.grid-img-btn');
+    if (imgBtn) {
+        const fi = imgBtn.querySelector('.grid-file-img');
+        if (fi) {
+            imgBtn.addEventListener('click', function() { fi.click(); });
+            fi.addEventListener('change', function() {
+                uploadImage(Array.from(this.files));
+                this.value = '';
+            });
+        }
+    }
+    const fileBtn = overlay.querySelector('.grid-file-btn');
+    if (fileBtn) {
+        const fi = fileBtn.querySelector('.grid-file-doc');
+        if (fi) {
+            fileBtn.addEventListener('click', function() { fi.click(); });
+            fi.addEventListener('change', function() {
+                uploadFiles(Array.from(this.files));
+                this.value = '';
+            });
+        }
+    }
+}
+
+// 提交编辑后的卡片（先删旧卡，再加新卡）
+async function submitGridEdit(overlay, cardId) {
+    const ta = overlay.querySelector('.grid-new-textarea');
+    if (!ta) return;
+    let content = ta.value.trim();
+    if (!content) {
+        showNotification('内容为空', 'warning');
+        return;
+    }
+
+    try {
+        // 先删除旧卡片
+        await fetch('/delete_card', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
+            body: JSON.stringify({ id: cardId })
+        });
+
+        // 再添加新卡片
+        const response = await fetch('/api/add_card', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: content })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            addCardToPage(content, result.id);
+            overlay.remove();
+            showNotification('保存成功', 'success');
+        } else {
+            showNotification('保存失败: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('编辑保存出错:', error);
+        showNotification('保存出错', 'error');
+    }
 }
 
 async function deleteCard(button) {

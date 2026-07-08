@@ -8,6 +8,3 @@ __pycache__/
 *.zip
 lan-clip-deploy.tar
 .venv/
-perm_lock.json
-pinned.json
-tray_config.json

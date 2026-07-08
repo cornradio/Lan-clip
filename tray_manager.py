@@ -6,10 +6,11 @@ import webbrowser
 import threading
 import json
 from PIL import Image, ImageDraw
-# import AppKit # 引入 macOS 原生库
 
-# 告诉 macOS：我是一个后台应用，不要在我的 Dock 栏显示图标！
-# AppKit.NSApplication.sharedApplication().setActivationPolicy_(1)
+# macOS 下隐藏 Dock 图标（后台应用模式）
+if sys.platform == 'darwin':
+    import AppKit
+    AppKit.NSApplication.sharedApplication().setActivationPolicy_(1)
 
 # 确保导入 pystray
 try:

@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!--  App 名称，在用户选择添加到主页的时候这个名字会自动蹦出来 -->
     <meta name="apple-mobile-web-app-title" content="LanClip">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=17">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=18">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .btn-block {
@@ -55,6 +55,25 @@
 </head>
 
 <body>
+    <script>
+        // 在渲染前立即应用设置，避免闪烁
+        (function() {
+            if (localStorage.getItem('gridMode') === 'true') {
+                document.body.classList.add('grid-mode-active');
+            }
+            var toolbarNames = ['scroll-top', 'grid-mode', 'highlight', 'gallery'];
+            toolbarNames.forEach(function(name) {
+                var visible = localStorage.getItem('toolbar-' + name) === 'true';
+                // 稍后通过 CSS 属性标记控制
+                if (visible) {
+                    document.documentElement.setAttribute('data-toolbar-' + name, 'true');
+                }
+            });
+            if (localStorage.getItem('simpleMode') === 'true') {
+                document.body.classList.add('simple-mode');
+            }
+        })();
+    </script>
     <header id="banner">
         <div class="banner-wrap">
             <div class="banner-left">
@@ -189,7 +208,14 @@
         </div>
 
         <!-- 卡片展示区域 -->
-        <div class="card" id="card-container">
+        <script>
+            // 在卡片渲染前给容器加上 grid-mode class
+            if (document.body.classList.contains('grid-mode-active')) {
+                document.write('<div class="card grid-mode" id="card-container">');
+            } else {
+                document.write('<div class="card" id="card-container">');
+            }
+        </script>
             {% for card in cards[:20] %}
             <div class="card-wrapper {{ 'pinned' if card.pinned else '' }}" data-id="{{ card.id }}">
                 <div class="card-header">
@@ -440,7 +466,7 @@
                                 <span>GitHub 仓库</span>
                             </a>
                         </div>
-                        <p style="font-size: 12px; opacity: 0.5; margin-top: 8px;">LAN CLIP v1.1.0</p>
+                        <p style="font-size: 12px; opacity: 0.5; margin-top: 8px;">LAN CLIP v1.7.1</p>
                     </div>
                 </div>
             </div>
@@ -532,7 +558,7 @@
         </div>
 
         <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='main.js') }}?v=21"></script>
+        <script src="{{ url_for('static', filename='main.js') }}?v=23"></script>
 
     </div>
     <div id="notification-container"></div>
