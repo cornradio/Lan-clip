@@ -198,6 +198,9 @@ let currentPage = 1;
 let hasMore = true;
 let isLoading = false;
 const PAGE_SIZE = 20;
+let searchMode = false;
+let searchRequestSeq = 0;
+let searchDebounceTimer = null;
 
 // 旧内容访问控制（3 天前）
 const OLD_DAYS_LIMIT = 3;
@@ -321,7 +324,9 @@ window.onload = function () {
     }
 
     // 监听滚动加载 / 触发旧内容密码提示
+    // 搜索时结果已一次性取回，不再靠滚动翻页
     window.addEventListener('scroll', () => {
+        if (searchMode) return;
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
             if (hasMore && !isLoading) {
                 loadMoreCards(oldContentLoaded);
@@ -367,13 +372,19 @@ function getCardHtml(card) {
 }
 
 async function refreshCards(showOldArg = null) {
-    if (isLoading) return;
-    isLoading = true;
-
     // 如果 showOldArg 是布尔值，则更新状态（通常来自解锁成功）
     if (typeof showOldArg === 'boolean') {
         oldContentLoaded = showOldArg;
     }
+
+    const activeQuery = getActiveSearchQuery();
+    if (activeQuery) {
+        await loadSearchResults(activeQuery);
+        return;
+    }
+
+    if (isLoading) return;
+    isLoading = true;
 
     // 使用当前解锁状态进行请求
     const showOld = oldContentLoaded;
@@ -424,58 +435,133 @@ async function refreshCards(showOldArg = null) {
     }
 }
 
-// 快速筛选功能
-function filterCards() {
-    // 获取当前可见的搜索框（可能是桌面端的或者是手机端的）
+function getActiveSearchInput() {
     const searchInputs = document.querySelectorAll('.search-input');
-    let activeInput = null;
-    for (let input of searchInputs) {
-        if (input.offsetParent !== null) {
-            activeInput = input;
-            break;
-        }
+    for (const input of searchInputs) {
+        if (input.offsetParent !== null) return input;
     }
-    const query = (activeInput?.value || '').toLowerCase();
+    for (const input of searchInputs) {
+        if (input.value) return input;
+    }
+    return searchInputs[0] || null;
+}
+
+function getActiveSearchQuery() {
+    return (getActiveSearchInput()?.value || '').trim();
+}
+
+function renderCardList(cards, emptyMessage) {
+    const container = document.getElementById('card-container');
+    if (!container) return;
+    container.innerHTML = '';
+    cards.forEach(card => {
+        container.insertAdjacentHTML('beforeend', getCardHtml(card));
+    });
+    if (!cards.length && emptyMessage) {
+        container.insertAdjacentHTML('beforeend', `<div class="search-empty" style="text-align:center;padding:24px;opacity:0.7;">${emptyMessage}</div>`);
+    }
+    if (gridModeActive) addNewCardPlaceholder();
+}
+
+function applyClientCardFilter(query, trustServerTextMatch) {
+    const q = (query || '').toLowerCase();
     const cards = document.querySelectorAll('.card-wrapper');
-    
+
     cards.forEach(card => {
         const contentElement = card.querySelector('.card-content');
         if (!contentElement) return;
-        
+
         const text = contentElement.textContent.toLowerCase();
-        const matchesQuery = text.includes(query);
+        const matchesQuery = trustServerTextMatch || !q || text.includes(q);
 
         let matchesType = true;
         if (currentTypeFilter !== 'all') {
             const hasImg = card.querySelector('img, video');
             const hasLink = card.querySelector('a');
             const hasFile = card.querySelector('.file-card');
-            
+
             if (currentTypeFilter === 'image') matchesType = !!hasImg;
             else if (currentTypeFilter === 'link') matchesType = !!hasLink;
             else if (currentTypeFilter === 'file') matchesType = !!hasFile;
             else if (currentTypeFilter === 'text') {
-                // 仅文本：没有图片、没有外链、没有附件
                 matchesType = !hasImg && !hasLink && !hasFile;
             }
         }
 
-        if (matchesQuery && matchesType) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
+        card.style.display = (matchesQuery && matchesType) ? '' : 'none';
     });
+}
 
-    // 优化：如果在搜索且还有更多数据未加载，显示“搜索全部”按钮
+function updateSearchMoreVisibility(query) {
     const searchMoreContainer = document.getElementById('search-more-container');
-    if (searchMoreContainer) {
-        if ((query.trim() !== '' || currentTypeFilter !== 'all') && hasMore) {
-            searchMoreContainer.style.display = 'block';
-        } else {
-            searchMoreContainer.style.display = 'none';
-        }
+    if (!searchMoreContainer) return;
+    // 文本搜索由接口一次返回全部匹配，不再提示继续滚动或手动加载
+    if ((query || '').trim() !== '' || searchMode) {
+        searchMoreContainer.style.display = 'none';
+        return;
     }
+    if (currentTypeFilter !== 'all' && hasMore) {
+        searchMoreContainer.style.display = 'block';
+    } else {
+        searchMoreContainer.style.display = 'none';
+    }
+}
+
+// 快速筛选。有搜索词时向服务端取回全部匹配，浏览列表仍按页滚动加载。
+function filterCards() {
+    const query = getActiveSearchQuery();
+    clearTimeout(searchDebounceTimer);
+    if (!query) {
+        if (searchMode) {
+            exitSearchMode();
+        } else {
+            applyClientCardFilter('', false);
+            updateSearchMoreVisibility('');
+        }
+        return;
+    }
+    applyClientCardFilter(query, false);
+    updateSearchMoreVisibility(query);
+    searchDebounceTimer = setTimeout(() => {
+        if (getActiveSearchQuery() === query) {
+            loadSearchResults(query);
+        }
+    }, 200);
+}
+
+async function loadSearchResults(query) {
+    const reqId = ++searchRequestSeq;
+    searchMode = true;
+    hasMore = false;
+    const loader = document.getElementById('main-loader');
+    if (loader) loader.style.display = 'block';
+    try {
+        // show_old 仍由服务端鉴权；未登录时只返回可见范围内的全部匹配
+        const response = await fetch(`/api/cards?q=${encodeURIComponent(query)}&show_old=true`, {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (reqId !== searchRequestSeq || getActiveSearchQuery() !== query) return;
+        renderCardList(data.cards || [], '没有匹配的内容');
+        currentPage = 1;
+        hasMore = false;
+        if (data.has_restricted) hasOlderCards = true;
+        applyClientCardFilter(query, true);
+        updateSearchMoreVisibility(query);
+    } catch (error) {
+        console.error('搜索失败:', error);
+        showNotification('搜索失败，请检查网络。', 'error');
+    } finally {
+        if (reqId === searchRequestSeq && loader) loader.style.display = 'none';
+    }
+}
+
+async function exitSearchMode() {
+    searchMode = false;
+    searchRequestSeq++;
+    const loader = document.getElementById('main-loader');
+    if (loader) loader.style.display = 'none';
+    await refreshCards();
 }
 
 function toggleFilterMenu(event) {
@@ -524,21 +610,45 @@ document.addEventListener('click', function() {
 });
 
 async function loadAllForSearch() {
+    const query = getActiveSearchQuery();
+    if (query) {
+        await loadSearchResults(query);
+        return;
+    }
     const btnText = document.getElementById('search-more-text');
     if (btnText) btnText.textContent = '正在获取全部数据...';
-    
-    // 一次性加载极大量数据进行全文筛选
-    await loadMoreCards(hasOlderCards, 9999);
-    
-    if (btnText) {
-        btnText.textContent = hasMore ? '加载了更多结果' : '已获得全部结果';
+    await loadEntireVisibleSet();
+    if (btnText) btnText.textContent = '已获得全部结果';
+    applyClientCardFilter('', false);
+    updateSearchMoreVisibility('');
+}
+
+async function loadEntireVisibleSet() {
+    if (isLoading) return;
+    isLoading = true;
+    const loader = document.getElementById('main-loader');
+    if (loader) loader.style.display = 'block';
+    try {
+        const showOld = hasOlderCards || oldContentLoaded;
+        const response = await fetch(`/api/cards?all=1&show_old=${showOld}`, {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        renderCardList(data.cards || []);
+        currentPage = 1;
+        hasMore = false;
+        if (data.has_restricted) hasOlderCards = true;
+    } catch (error) {
+        console.error('加载全部卡片失败:', error);
+        showNotification('加载全部卡片失败，请检查网络。', 'error');
+    } finally {
+        isLoading = false;
+        if (loader) loader.style.display = 'none';
     }
-    // 重新运行筛选
-    filterCards();
 }
 
 async function loadMoreCards(showOld = false, customSize = null) {
-    if (isLoading) return;
+    if (searchMode || isLoading) return;
     isLoading = true;
 
     const loader = document.getElementById('main-loader');

@@ -58,6 +58,30 @@ def is_authenticated():
     
     return auth_service.verify_password(password)
 
+def card_matches_query(content, query):
+    """Case-insensitive match against raw text and visible text inside HTML cards."""
+    if not query:
+        return True
+    raw = content or ''
+
+    def _tag_to_text(match):
+        attrs = ' '.join(re.findall(r'=\s*["\']([^"\']*)["\']', match.group(0)))
+        return ' ' + attrs + ' '
+
+    visible = re.sub(r'<[^>]+>', _tag_to_text, raw)
+    for entity, char in (
+        ('&nbsp;', ' '),
+        ('&amp;', '&'),
+        ('&lt;', '<'),
+        ('&gt;', '>'),
+        ('&quot;', '"'),
+        ('&#39;', "'"),
+    ):
+        visible = visible.replace(entity, char)
+    needle = query.casefold()
+    return needle in raw.casefold() or needle in visible.casefold()
+
+
 def get_filtered_cards(all_cards, force_show_all=False):
     # 只有当 force_show_all 为 True 且已认证时，才显示全部内容
     if force_show_all and is_authenticated():
@@ -437,18 +461,33 @@ def get_cards_api():
     page = int(request.args.get('page', 1))
     size = int(request.args.get('size', 20))
     show_old = request.args.get('show_old', 'false').lower() == 'true'
+    q = (request.args.get('q') or '').strip()
+    # Search returns every match in one response. `all=1` does the same for
+    # the current visibility window (used when a type filter needs the full set).
+    return_all = request.args.get('all', 'false').lower() == 'true' or bool(q)
     
     # cards_cache 已经是排序好的了（置顶在前，其余倒序）
     filtered_cards = get_filtered_cards(cards_cache, force_show_all=show_old)
-    
-    all_cards = filtered_cards
-    
-    start = (page - 1) * size
-    end = start + size
+    if q:
+        filtered_cards = [c for c in filtered_cards if card_matches_query(c.get('content', ''), q)]
+
+    if return_all:
+        page_cards = filtered_cards
+        has_more = False
+    else:
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 20
+        start = (page - 1) * size
+        end = start + size
+        page_cards = filtered_cards[start:end]
+        has_more = end < len(filtered_cards)
     
     return jsonify({
-        'cards': all_cards[start:end],
-        'has_more': end < len(all_cards),
+        'cards': page_cards,
+        'has_more': has_more,
+        'total': len(filtered_cards),
         'has_restricted': len(cards_cache) > len(get_filtered_cards(cards_cache, force_show_all=False))
     })
 

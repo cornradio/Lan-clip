@@ -12,7 +12,7 @@
     <!--  App 名称，在用户选择添加到主页的时候这个名字会自动蹦出来 -->
     <meta name="apple-mobile-web-app-title" content="LanClip">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=18">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}?v=1">
     <style>
         .btn-block {
             display: inline-flex;
@@ -558,7 +558,7 @@
         </div>
 
         <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='main.js') }}?v=23"></script>
+        <script src="{{ url_for('static', filename='main.js') }}?v=24"></script>
 
     </div>
     <div id="notification-container"></div>
